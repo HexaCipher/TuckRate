@@ -5,7 +5,7 @@ Live status per `docs/6-Implementation-Plan.md`. One phase at a time.
 | Phase | Status |
 |---|---|
 | 0. Setup | ✅ Complete |
-| 1. Database | 🟡 Migration written; awaiting deploy verification (see notes) |
+| 1. Database | ✅ Complete (verified in live DB) |
 | 2. Authentication | ⬜ Next |
 | 3. Core UI | ⬜ Not started |
 | 4. Main Features | ⬜ Not started |
@@ -32,19 +32,20 @@ Live status per `docs/6-Implementation-Plan.md`. One phase at a time.
 - Added minimal `supabase/config.toml` (required for the GitHub integration to recognize the project).
 - Created `supabase/seed.sql` — 10 idempotent sample items (**must be run manually** in the SQL editor — the Git integration does not apply seed files).
 
-**Correction this session:** first attempt put SQL in `supabase/schemas/`, which the GitHub deploy pipeline ignores (that folder is a local-CLI-only declarative layer that must be diffed into migrations). Pipeline only applies `supabase/migrations/`. Removed `supabase/schemas/`; migrations are now the single source of truth.
+**Correction this session:** first attempt put SQL in `supabase/schemas/`, which the GitHub deploy pipeline ignores (that folder is a local-CLI-only declarative layer that must be diffed into migrations). Moved everything to `supabase/migrations/`. The pipeline then failed anyway with *"Remote migration versions not found in local migrations directory"* — the remote `supabase_migrations.schema_migrations` table held versions with no matching local files. Rather than repair migration history, we switched to applying SQL by hand in the SQL editor (see decisions).
+
+**Verified in the live DB** via `select` against `pg_tables` / `pg_policies`: 4 tables, RLS enabled on all 4, 13 policies, 10 seeded items.
 
 ## Decisions / deviations from docs
 
-- **Migration approach:** we use the Supabase GitHub integration's "Deploy to production" — it applies pending files in `supabase/migrations/` on push to the connected branch. Consequence: pushes to `main` mutate the live DB directly. Schema changes = add a new timestamped migration file (never edit an already-applied one).
+- **Migration approach: manual.** TRD suggests Supabase CLI migrations, and we briefly tried the GitHub integration; both were dropped. Schema is applied by pasting SQL into the Supabase SQL editor. `supabase/migrations/20260827000000_init.sql` + `supabase/seed.sql` remain in the repo as the written record — they must be updated by hand alongside any editor change, or the repo drifts from the DB. Acceptable for a solo hobby project; revisit if a second developer joins.
 - **Admin writes:** admins manage menu/reports via dashboard/service-role paths that bypass RLS; no separate admin client needed for MVP.
+- **`supabase/config.toml`** is now vestigial (only the abandoned integration read it). Harmless; left in place.
 
-## Required manual steps before calling Phase 1 verified
-1. In Supabase Dashboard → Project Settings → Integrations → GitHub: confirm **Working directory = `.`** and **"Deploy to production" is enabled**.
-2. Push → watch the deploy status (PR check / dashboard). Confirm tables appear under Database → Tables.
-3. Run `supabase/seed.sql` once in the SQL editor.
-4. Verify RLS with an anon key: read `items` ✅, write ❌.
-5. Sign up a test user → confirm `public.users` row appears via trigger; then set own account `is_admin = true` manually.
+## Remaining manual steps (do before Phase 2 auth testing)
+1. Optional: disable the GitHub integration in Supabase (Project Settings → Integrations → GitHub) to stop the failing "Supabase Preview" check on every commit.
+2. After first OTP signup: confirm a `public.users` row was auto-created by the `on_auth_user_created` trigger, then set that account's `is_admin = true` manually.
+3. Verify RLS from the client with the anon key: read `items` ✅, write ❌.
 
 ## Ideas not in scope
 
