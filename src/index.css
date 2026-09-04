@@ -1,52 +1,51 @@
-/* Google Fonts: Inter */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500&display=swap');
+/* Google Fonts: Poppins per design-system.md */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
 
 @import "tailwindcss";
 
 @theme {
-  /* ─── Colors ─── */
-  --color-app: #17181C;
-  --color-card: #202127;
-  --color-elevated: #282A31;
+  /* ─── Colors (Warm Cream + Terracotta Palette per design-system.md) ─── */
+  --color-app: #F7EFE3;
+  --color-card: #FFFBF5;
+  --color-elevated: #F1E7D8;
 
-  --color-border-subtle: #232329;
-  --color-border-default: #2C2D33;
-  --color-border-strong: #3A3B42;
+  --color-border-subtle: #EAE0D0;
+  --color-border-default: #DFD4C2;
+  --color-border-strong: #CFC2AE;
 
-  --color-primary: #F5F5F0;
-  --color-secondary: #9B9A94;
-  --color-muted: #6F6E68;
+  --color-primary: #2B211B;
+  --color-secondary: #706256;
+  --color-muted: #85776A;
 
-  --color-accent: #D85A30;
-  --color-accent-light: #F0997B;
-  --color-accent-dark: #4A1B0C;
-  --color-accent-hover: #E56A40;
+  --color-accent: #C1502E;
+  --color-accent-light: #F4C9B4;
+  --color-accent-dark: #8C3218;
+  --color-accent-hover: #AA4425;
 
-  --color-good-bg: #173404;
-  --color-good: #97C459;
+  --color-good-bg: #E3F3E9;
+  --color-good: #3F8F5F;
 
-  --color-bad-bg: #501313;
-  --color-bad: #F09595;
+  --color-bad-bg: #FBE7E5;
+  --color-bad: #B23B3B;
 
-  --color-mixed-bg: #412402;
-  --color-mixed: #FAC775;
+  --color-mixed-bg: #FBF0DC;
+  --color-mixed: #C98A26;
 
-  --color-star: #FAC775;
+  --color-star: #C98A26;
 
-  /* ─── Font Family ─── */
-  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  /* ─── Font Family (Poppins per design-system.md) ─── */
+  --font-sans: 'Poppins', system-ui, -apple-system, sans-serif;
 
-  /* ─── Border Radius ─── */
+  /* ─── Border Radius (16-20px per design-system.md) ─── */
   --radius-sm: 8px;
   --radius-DEFAULT: 12px;
   --radius-lg: 16px;
+  --radius-xl: 20px;
   --radius-full: 9999px;
 }
 
 /* ─── Base Styles ─── */
 * {
-  margin: 0;
-  padding: 0;
   box-sizing: border-box;
   -webkit-tap-highlight-color: transparent;
 }
@@ -57,6 +56,7 @@ html {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overscroll-behavior-y: contain;
+  overflow-x: hidden;
 }
 
 body {
@@ -64,12 +64,15 @@ body {
   color: var(--color-primary);
   min-height: 100dvh;
   line-height: 1.5;
+  overflow-x: hidden;
 }
 
 #root {
   min-height: 100dvh;
   display: flex;
   flex-direction: column;
+  align-items: center;
+  overflow-x: hidden;
 }
 
 /* ─── Scrollbar ─── */
@@ -86,13 +89,48 @@ body {
   border-radius: 9999px;
 }
 
-/* ─── Focus ─── */
+/* ─── Themed Browser Surfaces ─── */
+::selection {
+  background-color: var(--color-accent-light);
+  color: var(--color-accent-dark);
+}
+
 :focus-visible {
   outline: 2px solid var(--color-accent);
   outline-offset: 2px;
 }
 
+input, button, select, textarea {
+  caret-color: var(--color-accent);
+}
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ─── Warm Shadows ─── */
+.shadow-warm {
+  box-shadow: 0 2px 8px -1px rgba(43, 33, 27, 0.05), 0 1px 3px rgba(43, 33, 27, 0.04);
+}
+
+.shadow-warm-md {
+  box-shadow: 0 4px 14px -2px rgba(43, 33, 27, 0.07), 0 2px 6px rgba(43, 33, 27, 0.03);
+}
+
+.shadow-warm-lg {
+  box-shadow: 0 8px 22px -3px rgba(43, 33, 27, 0.09), 0 3px 8px rgba(43, 33, 27, 0.04);
+}
+
 /* ─── Safe Area ─── */
 .safe-bottom {
   padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* ─── Scrollbar Hide (filter chips, etc.) ─── */
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
 }

@@ -6,8 +6,8 @@ Live status per `docs/6-Implementation-Plan.md`. One phase at a time.
 |---|---|
 | 0. Setup | ✅ Complete |
 | 1. Database | ✅ Complete (verified in live DB) |
-| 2. Authentication | ⬜ Next |
-| 3. Core UI | ⬜ Not started |
+| 2. Authentication | 🟨 Code complete — live OTP test pending |
+| 3. Core UI | 🟨 Code complete — item_stats view + live browsing test pending |
 | 4. Main Features | ⬜ Not started |
 | 5. Trust & Moderation | ⬜ Not started |
 | 6. Nice-to-have Integrations | ⬜ Deferred until core loop is validated |
@@ -36,17 +36,90 @@ Live status per `docs/6-Implementation-Plan.md`. One phase at a time.
 
 **Verified in the live DB** via `select` against `pg_tables` / `pg_policies`: 4 tables, RLS enabled on all 4, 13 policies, 10 seeded items.
 
+### Phase 2 — Authentication (this session)
+- **Auth context** — `src/lib/auth.tsx` (AuthProvider) + `src/lib/auth-context.ts` (useAuth): silent `supabase.auth.getSession()` on load with splash spinner (App Flow §1) and an error/retry state if it throws; `onAuthStateChange` keeps React in sync. Session persistence across refreshes needs no custom code — supabase-js stores/refreshes the token in localStorage.
+- **Login screen** (`src/pages/LoginPage.tsx`), two-step unified login/signup per App Flow §4:
+  - Step 1: email field (inline "Enter a valid email", submit disabled until valid, spinner while sending) + optional room number (React Hook Form, per stack)
+  - Step 2: single 6-digit code field (`inputMode="numeric"`, `autoComplete="one-time-code"` for mobile keyboard/autofill), Verify with spinner, resend link with 30s countdown cooldown
+  - Error mapping: wrong code → "That code's not right. Try again." with the field cleared and refocused; expired → "That code expired. Resend a new one." with the resend link emphasized; send failures → friendly rate-limit/offline copy
+- **Supabase calls:** `signInWithOtp({ email, options: { shouldCreateUser: true } })` (unified login/signup) and `verifyOtp({ email, token, type: 'email' })` — the documented email-OTP verification type.
+- **Redirect-after-login:** Login returns to `location.state.from` (internal paths only) or Home; `/profile` redirects to `/login` with `from: '/profile'` when logged out.
+- **Profile shell** (`src/pages/ProfilePage.tsx`): avatar initial, email, room-number chip from `public.users`, Log out → navigates Home and clears the session (navigates before signOut so the auth guard doesn't intercept). My Reviews list is Phase 4 per the plan.
+- **`src/hooks/useProfile.ts`:** TanStack Query for the current user's `public.users` row (loading skeleton / error+retry / success states).
+
 ## Decisions / deviations from docs
 
 - **Migration approach: manual.** TRD suggests Supabase CLI migrations, and we briefly tried the GitHub integration; both were dropped. Schema is applied by pasting SQL into the Supabase SQL editor. `supabase/migrations/20260827000000_init.sql` + `supabase/seed.sql` remain in the repo as the written record — they must be updated by hand alongside any editor change, or the repo drifts from the DB. Acceptable for a solo hobby project; revisit if a second developer joins.
 - **Admin writes:** admins manage menu/reports via dashboard/service-role paths that bypass RLS; no separate admin client needed for MVP.
 - **`supabase/config.toml`** is now vestigial (only the abandoned integration read it). Harmless; left in place.
+- **Room number is saved after OTP verification, not at OTP-send time.** RLS allows a user to update only their own `room_number` column and only with an active session, so the write happens post-verify; it's best-effort and never blocks login.
+- **OTP verify uses `type: 'email'`** (per Supabase docs for codes sent by `signInWithOtp`). Expired-vs-wrong detection keys off the `otp_expired` code / "expired" message text, since Supabase doesn't return distinct friendly messages.
+- **Added a "Use a different email" back-link on Step 2.** Not in App Flow §4's step-2 layout list; included because a typo'd email would otherwise dead-end the flow. Remove if unwanted.
+- **Auth context split across two files** (`auth.tsx` provider component, `auth-context.ts` hook + context) to satisfy oxlint's fast-refresh rule (a file should export only components).
+- **Login has no bottom nav** — the bottom nav doesn't exist yet (Phase 3); App Flow already specifies Login as a focused screen without it.
 
-## Remaining manual steps (do before Phase 2 auth testing)
+### Phase 3 — Core UI (this session)
+- **Design System & Theme Overhaul:** Transitioned from dark theme to the warm light theme specified in `.agents/rules/design-system.md` and `docs/4-UIUX-Brief.md`:
+  - Background `#F7EFE3`, card surfaces `#FFFBF5`, borders `#EAE0D0`, terracotta primary accent `#C1502E` (light tint `#F4C9B4`), text `#2B211B` / `#8C7F73`.
+  - Rating badge palette: "Worth it" (`#E3F3E9` / `#3F8F5F`), "Skip it" (`#FBE7E5` / `#B23B3B`), "Mixed" (`#FBF0DC` / `#C98A26`).
+  - Added soft warm shadow utilities (`shadow-warm`, `shadow-warm-md`, `shadow-warm-lg`) and 16–20px card radiuses.
+- **Home Screen Rebuild (`src/pages/HomePage.tsx`):** Complete rebuild following the 7-level layout:
+  1. Header: "TuckRate" wordmark in SemiBold warm typography + dynamic rating/item count summary.
+  2. Search bar: rounded pill input (`rounded-full`), warm surface, navigates to `/search` on tap.
+  3. Category chip row: horizontally scrollable, dynamically derived from schema categories (`All`, `Snacks`, `Meals`, `Beverages`), styled per design rules (`#F4C9B4` active background with terracotta text).
+  4. Spotlight card (`SpotlightCard`): This week's top-rated item hero card with photo (or category-tinted placeholder), name, price, star rating, and rating badge. Tappable to detail; explicitly no CTA / "Order Now" button.
+  5. Top Rated row (`TopRatedCard`): Horizontally scrollable card row with food photo, item name, price, star rating, and rating badge. Explicitly no add/plus button.
+  6. Full menu list (`ItemCard`): Vertical stacked rows with name + price on left, star rating + worth-it badge on right.
+  7. Bottom nav (`BottomNav`): 3 items only (Home, Search, Profile), cream background, active pill highlight behind the icon (`#F4C9B4` / `#C1502E`).
+  - Implemented all four states: Success, Loading (skeleton cards + spotlight + top rated placeholders), Empty ("No items rated yet — be the first."), and Error ("Couldn't load the menu. Retry." with cached data preserved in an offline banner).
+- **New Components:**
+  - `src/components/CategoryPlaceholder.tsx`: Soft category-tinted fallback tiles for snacks, meals, beverages when no food photo is available.
+  - `src/components/SpotlightCard.tsx`: Hero card for top-rated item.
+  - `src/components/TopRatedCard.tsx`: Horizontal carousel card for community favorites.
+- **Shared Component Updates:**
+  - `src/components/ItemCard.tsx`: 16px radius, soft warm shadow, warm typography and borders.
+  - `src/components/WorthItBadge.tsx`: Light-tint bg with dark text pairs per warm theme.
+  - `src/components/StarRating.tsx`: Amber star (`#C98A26`), compact "★ 4.3" layout, size variants.
+  - `src/components/SkeletonCard.tsx`: Warm cream pulse placeholders (`SkeletonCard`, `SkeletonSpotlight`, `SkeletonTopRatedCard`).
+  - `src/components/Header.tsx`: TuckRate brand wordmark + summary subtitle prop + warm profile button.
+  - `src/components/BottomNav.tsx`: 3-item navigation with warm pill active indicator.
+- **Build & Quality:**
+  - `npm run lint`: oxlint passes with 0 warnings and 0 errors.
+  - `npm run build`: tsc and vite production bundle pass with 0 errors.
+  - `npx impeccable detect src/`: 0 anti-patterns detected.
+
+### UI Polish & Layout Refinement (Impeccable & Mobile Fixes)
+- **Category Chips Row & Padding:**
+  - Placed `px-4 py-1` directly on the horizontal scroll container so the first chip ("All") starts cleanly at 16px from screen bezel without clipping.
+  - Upgraded chip buttons to `inline-flex items-center justify-center h-9 px-5 rounded-full text-xs font-medium` with `gap-2.5` so each chip's background (`bg-card` or `bg-accent-light`) has generous 20px horizontal padding and comfortable vertical padding around the label text.
+- **Top Header & Mobile Safe Areas:**
+  - Added `pt-6 pb-2.5 px-4` with `max(1.5rem, env(safe-area-inset-top, 1.5rem))` in `Header.tsx` so "TuckRate" and the profile button have breathing space and never collide with phone status bars/bezels.
+  - Synchronized `<meta name="theme-color" content="#F7EFE3" />` in `index.html` to warm cream.
+- **Card Padding & Spacing:**
+  - `SpotlightCard`: Info row padding increased to `p-4`.
+  - `TopRatedCard`: Increased to `w-[140px]`, image `h-22`, padding `p-3`, margin `mt-2`.
+  - `ItemCard`: Increased to `px-4 py-3.5` with `min-h-[60px]` for effortless touch-targets.
+  - `SkeletonCard`: Fully synchronized skeleton placeholder dimensions to prevent layout shifts.
+- **Page Rhythm & Bottom Nav Clearance:**
+  - `App.tsx`: Increased bottom clearance from `pb-16` to `pb-24` ensuring the last menu item is never obscured by the fixed bottom navigation bar.
+  - `src/index.css`: Removed universal `margin: 0; padding: 0;` from `*` to let Tailwind v4 utilities control spacing cleanly.
+
+## Remaining manual steps (do before calling Phase 2 complete)
 1. Optional: disable the GitHub integration in Supabase (Project Settings → Integrations → GitHub) to stop the failing "Supabase Preview" check on every commit.
-2. After first OTP signup: confirm a `public.users` row was auto-created by the `on_auth_user_created` trigger, then set that account's `is_admin = true` manually.
-3. Verify RLS from the client with the anon key: read `items` ✅, write ❌.
+2. **Check the Auth email template uses `{{ .Token }}`** (Dashboard → Authentication → Emails → Templates, "Magic Link"). `signInWithOtp` sends a 6-digit code only when the template includes `.Token`; with only `.ConfirmationURL` users get a magic link instead. Default templates include both, but verify.
+3. Live-test the Login flow with a real inbox against App Flow §4 states: invalid email inline error + disabled submit; code send; wrong code (cleared + refocused); expired code (resend emphasized); resend 30s cooldown; redirect back to the originating screen; session survives a refresh; Log out returns to a logged-out Home.
+4. After first OTP signup: confirm a `public.users` row was auto-created by the `on_auth_user_created` trigger, then set that account's `is_admin = true` manually (carried over from Phase 1).
+5. Verify RLS from the client with the anon key: read `items` ✅, write ❌ (carried over from Phase 1).
+
+## Remaining manual steps (do before calling Phase 3 complete)
+1. **Paste the item_stats view SQL** (`supabase/migrations/20260904000000_item_stats_view.sql`) into the Supabase SQL editor and run it. This creates the aggregated view the Home screen queries.
+2. Run `npm run dev` and verify: Home loads the seeded items from Supabase with stars/badges, filter chips work, tapping a card navigates to Item Detail, back button returns to Home.
+3. Verify all four states on Home: success (items render), loading (skeletons flash briefly), empty (clear all active items, see "No items rated yet"), error (disconnect internet or use a bad key, see retry button).
+4. Verify all four states on Item Detail: success (item + reviews render), loading (skeletons), empty reviews ("No reviews yet — be the first."), error (retry button, back nav still works).
+5. Verify bottom nav: appears on Home/Search/Profile; hidden on `/login` and `/item/:id/rate`.
+6. Verify mobile viewport (360–430px) layout and warm cream/terracotta theme palette match .agents/rules/design-system.md.
 
 ## Ideas not in scope
 
-- (none yet)
+- Code-split the main bundle (vite reports ~530 kB / 155 kB gzip after Phase 3, and it lands in the SW precache). Fine for a PWA; revisit if first load feels slow on real devices.
+

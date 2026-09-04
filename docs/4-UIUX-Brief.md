@@ -2,7 +2,7 @@
 
 ## Product: TuckRate
 
-This brief is written to be used directly as design input for an AI UI builder (e.g. Stitch), one screen at a time. Global style guide first, then per-screen notes.
+**Note:** the color palette and component styling below reflect the current warm/light theme. The live, enforced source of truth for the agent is the Antigravity workspace Rule at `.agents/rules/design-system.md` (content originally from `8-Antigravity-Design-Rule.md`) — if the two ever drift, the Rule wins since it's what actually governs generated code. This doc is the fuller reference for anyone reading `/docs` end to end. Typography, layout, mobile responsiveness, and UX principles below are unchanged since the original dark-theme version and remain accurate.
 
 ---
 
@@ -12,7 +12,7 @@ This brief is written to be used directly as design input for an AI UI builder (
 
 **Core UX principle:** every screen should support a **10-second decision** — a student standing at the tuck shop counter needs to glance, understand, and decide. Prioritize legibility and scan-ability over decorative detail.
 
-**Mode:** Dark mode as the default and primary theme (not just supported — designed for). Reasoning: primary usage moment is evening/night at the counter, feels distinct from institutional light-mode apps, easier on eyes, better battery on OLED phones.
+**Mode:** Warm, light theme — cream background with a terracotta accent, photography-forward (real food photos, not stock imagery). Chosen over the original dark-mode direction for a more inviting, appetite-associated feel; the traffic-light rating system and scan-first UX principles carried over unchanged.
 
 ---
 
@@ -20,18 +20,17 @@ This brief is written to be used directly as design input for an AI UI builder (
 
 | Role | Color | Hex | Usage |
 |---|---|---|---|
-| Screen background | Near-black charcoal | `#17181C` | Base app background |
-| Card/surface background | Slightly lighter charcoal | `#202127` | Cards, input fields, chips (unselected) |
-| Divider/border | Subtle dark gray | `#232329` / `#2C2D33` | Hairline separators between list rows and sections |
-| Primary text | Off-white | `#F5F5F0` | Item names, headings, primary content |
-| Secondary text | Muted gray | `#9B9A94` | Metadata, counts, timestamps |
-| Placeholder/disabled text | Dim gray | `#6F6E68` | Search placeholder, disabled states |
-| Accent (primary) | Warm coral/orange | `#D85A30` (mid) / `#F0997B` (light) / `#4A1B0C` (dark, for text-on-accent) | Selected filter chip, primary CTA buttons, active states — appetite-associated, food-app convention, but distinct from Zomato red |
-| Rating: good/worth it | Green | bg `#173404`, text `#97C459` | "Worth it" badge |
-| Rating: bad/skip it | Red | bg `#501313`, text `#F09595` | "Skip it" badge, hygiene warning banner |
-| Rating: mixed | Amber | bg `#412402`, text `#FAC775` | "Mixed" badge, star icon color |
+| Screen background | Warm cream | `#F7EFE3` | Base app background — never white or dark |
+| Card/surface background | Off-white cream | `#FFFBF5` | Cards, input fields, chips (unselected) |
+| Divider/border | Warm light beige | `#EAE0D0` | Hairline separators between list rows and sections |
+| Primary text | Warm near-black | `#2B211B` | Item names, headings, primary content |
+| Secondary text | Muted brown-gray | `#8C7F73` | Metadata, counts, timestamps |
+| Accent (primary) | Terracotta | `#C1502E` (mid) / `#F4C9B4` (light tint) | Selected filter chip, primary CTA buttons, active states — the only accent color used, no other brights introduced |
+| Rating: good/worth it | Green | bg `#E3F3E9`, text `#3F8F5F` | "Worth it" badge |
+| Rating: bad/skip it | Red | bg `#FBE7E5`, text `#B23B3B` | "Skip it" badge, hygiene warning banner |
+| Rating: mixed | Amber | bg `#FBF0DC`, text `#C98A26` | "Mixed" badge, star icon color |
 
-**Rule:** badge/pill backgrounds always use the darkest shade of a color family with the lighter/mid shade for the text on top — never plain black or white text on a colored fill.
+**Rule:** badge/pill backgrounds use a light tint of the color family with a darker, saturated shade of the same hue for the text on top — the inverse of the old dark-theme approach (dark bg / light text), since the base is now light.
 
 ---
 
@@ -61,18 +60,19 @@ This brief is written to be used directly as design input for an AI UI builder (
 
 ## 5. Component Style
 
-- **Cards:** 12px border radius, no shadows (flat dark surfaces, distinguished by subtle background contrast and hairline borders — not elevation shadows, which read oddly on dark backgrounds).
-- **Buttons:** primary CTA uses the coral accent fill with dark text; secondary/ghost buttons use transparent background with a subtle border.
-- **Chips/filters:** pill-shaped (fully rounded), unselected = card-background gray, selected = coral accent fill.
-- **Badges (worth-it/skip-it/mixed):** small rounded-rect pills, color-coded per the palette above — this is the single most important visual element on each item row; it should be scannable at a glance without reading text.
+- **Cards:** 16–20px border radius, soft low-opacity warm-toned shadow (not harsh black — a light shadow reads naturally on a cream surface, unlike on the old dark theme).
+- **Buttons:** primary CTA is a fully rounded (pill) filled terracotta button with cream text; secondary/ghost buttons use a transparent background with a thin terracotta border.
+- **Chips/filters:** pill-shaped, unselected = cream surface with a border, selected = light terracotta tint fill with terracotta text.
+- **Badges (worth-it/skip-it/mixed):** small rounded-rect pills, color-coded per the palette above — this remains the single most important visual element on each item row; scannable at a glance without reading text.
 - **Icons:** simple outline-style icons (star, search, flag/report, user/profile) — consistent stroke weight throughout, no filled/solid icon variants mixed in.
 - **Star rating display:** a single filled star icon + numeric rating (e.g. "★ 4.3") rather than 5 individual star icons — more compact and legible at small sizes on a list row. Item Detail screen can show the larger numeric rating prominently instead of a 5-star row.
+- **Photography:** real food photos, 16–20px rounded-corner crop, consistent aspect ratio. Items with no photo yet get a soft category-tinted placeholder tile — never a broken image or plain gray box.
 
 ---
 
 ## 6. Dashboard Structure (future — owner-facing, not v1)
 
-Not part of MVP, but noting direction for when it's built: a simple, non-punitive summary view — most-rated items, average rating trend, recent reviews — framed as "what students think," not a scoreboard against the shop. Same dark theme and coral accent should extend here for visual consistency, on a slightly wider (tablet-friendly) layout since an owner may check this on a larger device.
+Not part of MVP, but noting direction for when it's built: a simple, non-punitive summary view — most-rated items, average rating trend, recent reviews — framed as "what students think," not a scoreboard against the shop. Same cream/terracotta theme should extend here for visual consistency, on a slightly wider (tablet-friendly) layout since an owner may check this on a larger device.
 
 ---
 
@@ -98,11 +98,11 @@ Not part of MVP, but noting direction for when it's built: a simple, non-punitiv
 ## 9. Visual References (for direction, not literal copying)
 
 - **Traffic-light rating systems** (like Uber driver ratings, but simplified to 3 states) — for the worth-it/skip-it/mixed badge convention.
-- **Dark-mode-first consumer apps** aimed at a college-age audience — for overall tonal reference (not any specific branded app).
+- **Warm, photography-forward food ordering apps** — for overall tonal/polish reference on color and imagery treatment only. Note: TuckRate is a rating app, not an ordering app — never carry over cart icons, add-to-cart buttons, checkout flows, or points/rewards mechanics from this kind of reference, even where they'd visually fit the layout.
 - **Zomato/Swiggy's information density on a list row** (name, price, rating all visible without tapping in) — useful pattern to borrow for the Home list, even while avoiding their color/branding directly.
 
 ---
 
-## 10. Per-screen notes for UI generation (Stitch prompts)
+## 10. Building the UI
 
-When generating each screen individually, carry the palette/typography/component rules above as a consistent system prompt, and use the screen-specific layout described in `3-App-Flow.md` for structure. Suggested order to generate: Home → Item Detail → Rate & Review → Login (OTP) → Profile → Search → Report modal → Admin view (last, lowest priority for MVP).
+Screens are built directly in code (currently via Antigravity), not through a separate mockup tool. The palette/typography/component rules above are enforced automatically through the Antigravity workspace Rule (`.agents/rules/design-system.md`), which applies to all component files via glob matching — no need to restate this brief when prompting for each screen. Use the screen-specific layout described in `3-App-Flow.md` for structure. Suggested build order: Home → Item Detail → Rate & Review → Login (OTP) → Profile → Search → Report modal → Admin view (last, lowest priority for MVP).

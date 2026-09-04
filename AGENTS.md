@@ -69,7 +69,8 @@ TuckRate: a PWA for rating hostel tuck-shop food. Vite + React 19 + TypeScript S
 - Entry: `src/main.tsx` → `src/App.tsx` (all routes defined inline there).
 - Backend is entirely Supabase (auth via email OTP, Postgres with RLS, REST). Client singleton in `src/lib/supabase.ts`; use `isSupabaseConfigured` before data calls.
 - DB schema types in `src/types/database.ts` are maintained by hand to mirror `docs/5-Backend-Schema.md` — update them whenever the schema changes.
-- Schema SQL lives in `supabase/migrations/*.sql` and `supabase/seed.sql`, but is **applied by hand in the Supabase SQL editor** — the GitHub integration is not used (it aborted with "Remote migration versions not found in local migrations directory" and was abandoned). These files are the written record of the live DB: when changing schema, run it in the editor **and** update the file, or they drift.
+- Schema SQL lives in `supabase/migrations/*.sql` and `supabase/seed.sql`. The Supabase **GitHub integration is not used** (it aborted with "Remote migration versions not found in local migrations directory"). Apply schema changes via the **Supabase MCP `apply_migration` tool** (records migration history) or the SQL editor, then write the same SQL into a `supabase/migrations/` file — these files are only a record, nothing applies them automatically, so they drift if you skip that step.
+- This Supabase project is **recycled from an unrelated student/department app**; migration history versions `20260316*` belong to it, not TuckRate. Its orphaned functions were dropped in `20260827135721`. Don't be confused by that history, and don't assume the remote DB started clean.
 - Tailwind CSS v4 uses CSS-first config: theme tokens/colors live in `src/index.css` under `@theme`. There is no `tailwind.config.js`.
 - PWA via `vite-plugin-pwa` (`vite.config.ts`): autoUpdate service worker caches built assets and runtime-caches Supabase REST responses (1h NetworkFirst) for offline menu browsing.
 
