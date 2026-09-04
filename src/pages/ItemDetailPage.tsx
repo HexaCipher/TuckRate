@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import {
   IconArrowLeft,
@@ -7,6 +8,7 @@ import {
 } from '@tabler/icons-react'
 import StarRating from '../components/StarRating'
 import WorthItBadge from '../components/WorthItBadge'
+import ReportModal from '../components/ReportModal'
 import { useItemDetail } from '../hooks/useItemDetail'
 import { useAuth } from '../lib/auth-context'
 import type { RatingWithUser } from '../types/database'
@@ -20,7 +22,15 @@ function formatDate(dateStr: string): string {
   })
 }
 
-function ReviewCard({ rating, isOwn }: { rating: RatingWithUser; isOwn?: boolean }) {
+function ReviewCard({
+  rating,
+  isOwn,
+  onReport,
+}: {
+  rating: RatingWithUser
+  isOwn?: boolean
+  onReport?: (rating: RatingWithUser) => void
+}) {
   return (
     <div className={`py-4 border-b border-border-subtle last:border-b-0 ${isOwn ? 'bg-accent-light/10 -mx-2 px-2 rounded-xl' : ''}`}>
       <div className="flex items-center justify-between mb-1.5">
@@ -28,14 +38,17 @@ function ReviewCard({ rating, isOwn }: { rating: RatingWithUser; isOwn?: boolean
           <StarRating rating={rating.stars} />
           <WorthItBadge worthItPct={rating.worth_it ? 100 : 0} ratingCount={1} />
         </div>
-        {/* Report icon — wired in Phase 5 */}
-        <button
-          type="button"
-          aria-label="Report this review"
-          className="w-8 h-8 flex items-center justify-center text-muted active:text-secondary"
-        >
-          <IconFlag size={16} stroke={1.75} />
-        </button>
+        {/* Report icon — wired to ReportModal (docs/3-App-Flow.md §8) */}
+        {!isOwn && (
+          <button
+            type="button"
+            onClick={() => onReport?.(rating)}
+            aria-label="Report this review"
+            className="w-8 h-8 flex items-center justify-center text-muted hover:text-bad active:text-secondary active:scale-95 transition-all cursor-pointer"
+          >
+            <IconFlag size={16} stroke={1.75} />
+          </button>
+        )}
       </div>
 
       {rating.review_text && (
@@ -77,6 +90,9 @@ function ItemDetailPage() {
 
   // Check if the current user already has a rating for this item
   const userRating = data?.ratings.find(r => r.user_id === user?.id)
+
+  // Report review modal state (Phase 5)
+  const [reportingRating, setReportingRating] = useState<RatingWithUser | null>(null)
 
   // Put user's own review at the top of the reviews list (docs/3-App-Flow.md §5)
   const sortedRatings = data?.ratings
@@ -198,7 +214,12 @@ function ItemDetailPage() {
 
               {/* Review cards */}
               {sortedRatings.map(rating => (
-                <ReviewCard key={rating.id} rating={rating} isOwn={rating.user_id === user?.id} />
+                <ReviewCard
+                  key={rating.id}
+                  rating={rating}
+                  isOwn={rating.user_id === user?.id}
+                  onReport={setReportingRating}
+                />
               ))}
             </div>
           </div>
@@ -218,6 +239,16 @@ function ItemDetailPage() {
           </div>
         </>
       )}
+
+      {/* Report review modal (docs/3-App-Flow.md §8) */}
+      <ReportModal
+        isOpen={Boolean(reportingRating)}
+        onClose={() => setReportingRating(null)}
+        ratingId={reportingRating?.id ?? ''}
+        ratingAuthorId={reportingRating?.user_id ?? ''}
+        reviewSnippet={reportingRating?.review_text}
+        returnPath={`/item/${id}`}
+      />
 
       {/* Back nav always available even on error (docs/3-App-Flow.md §3) — header handles this */}
     </div>

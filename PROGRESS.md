@@ -9,7 +9,7 @@ Live status per `docs/6-Implementation-Plan.md`. One phase at a time.
 | 2. Authentication | ✅ Complete (magic link instead of OTP code — Resend integration deferred) |
 | 3. Core UI | ✅ Complete (user-verified working) |
 | 4. Main Features | ✅ Complete (user-verified working) |
-| 5. Trust & Moderation | ⬜ Not started |
+| 5. Trust & Moderation | 🟨 Code complete — SQL migration + live moderation test pending |
 | 6. Nice-to-have Integrations | ⬜ Deferred until core loop is validated |
 | 7. Testing | ⬜ Not started |
 | 8. Deployment & Launch | ⬜ Not started |
@@ -135,6 +135,30 @@ Live status per `docs/6-Implementation-Plan.md`. One phase at a time.
   - `npm run lint`: oxlint passes with 0 warnings and 0 errors.
   - `npm run build`: `tsc -b && vite build` passes with 0 errors.
 
+### Phase 5 — Trust & Moderation (this session)
+- **Database & Rate Limiting (`supabase/migrations/20260904000001_moderation.sql`):**
+  - Added `check_rating_rate_limit()` trigger function blocking rapid spam (>5 submissions per minute per user).
+  - Added `admin_ban_user(target_user_id)` security definer function allowing authenticated admins to ban abusive user accounts safely.
+  - Added `Admins can delete reports` policy to enable moderation report cleanup.
+- **Report / Flag Modal (`src/components/ReportModal.tsx` + `src/hooks/useSubmitReport.ts`):**
+  - Built bottom-sheet modal triggered by flag icon on review cards in `ItemDetailPage.tsx`.
+  - Enforces selection of report reason (`fake_spam`, `offensive`, `unrelated`, `other`) and optional freeform comment.
+  - Prevents reporting own review; redirects unauthenticated visitors to login with return path.
+  - Handles unique constraint (`unique(rating_id, reported_by)`) gracefully with clear "You have already reported this review" error.
+- **Admin Moderation Dashboard (`src/pages/AdminPage.tsx` + `src/hooks/useReports.ts`):**
+  - Gated by `is_admin` check — non-admins and logged-out users are redirected to Home (`/`).
+  - Lists pending reports with reported review text, item context, author details, reporter room notes, and reason badges.
+  - Provides 3 actionable workflows:
+    1. "Dismiss" — marks report status as resolved (`dismissed`) with no content change.
+    2. "Remove review" — prompts confirmation, deletes the flagged rating from `ratings`, and resolves report.
+    3. "Ban user" — prompts confirmation, bans the review author via `admin_ban_user` RPC, and resolves report.
+  - All 4 states: loading skeletons, empty queue ("No pending reports — all clear!"), error state with retry, and interactive list.
+- **Profile Moderation Access (`src/pages/ProfilePage.tsx`):**
+  - Added "Moderation Queue" access button visible only when `profile.data?.is_admin === true`.
+- **Build & Quality:**
+  - `npm run lint`: oxlint passes with 0 warnings and 0 errors across 35 files.
+  - `npm run build`: `tsc -b && vite build` passes with 0 errors.
+
 ## Remaining manual steps (do before calling Phase 2 complete)
 1. Optional: disable the GitHub integration in Supabase (Project Settings → Integrations → GitHub) to stop the failing "Supabase Preview" check on every commit.
 2. **Check the Auth email template uses `{{ .Token }}`** (Dashboard → Authentication → Emails → Templates, "Magic Link"). `signInWithOtp` sends a 6-digit code only when the template includes `.Token`; with only `.ConfirmationURL` users get a magic link instead. Default templates include both, but verify.
@@ -173,7 +197,28 @@ Live status per `docs/6-Implementation-Plan.md`. One phase at a time.
    - Tap a review → navigates to Item Detail.
    - Test empty state when user has 0 ratings ("You haven't rated anything yet" + "Browse menu" button).
 
+## Remaining manual steps (do before calling Phase 5 complete)
+1. **Apply SQL migration**:
+   - Paste `supabase/migrations/20260904000001_moderation.sql` into the Supabase SQL editor and execute it.
+   - Confirms `check_rating_rate_limit()` trigger and `admin_ban_user()` RPC are created.
+2. **Report Modal test**:
+   - Navigate to Item Detail with reviews from another user.
+   - Tap flag icon on a review → verify ReportModal opens.
+   - Try submitting without selecting a reason → verify validation message.
+   - Select a reason (e.g. "Fake / Spam") + optional comment → submit → verify toast "Report submitted — thanks for flagging this".
+   - Tap flag on the same review again → submit → verify duplicate report message ("You have already reported this review.").
+3. **Admin Moderation test (`/admin`)**:
+   - Make sure current account has `is_admin = true` in `public.users`.
+   - Tap "Moderation Queue" from Profile or navigate to `/admin`.
+   - Verify report appears in queue with item name, review text, stars, author, reporter, and reason.
+   - Test "Dismiss" action → report removed from pending list.
+   - Submit another report, test "Remove review" → verify review deleted from database and item detail.
+   - Submit another report, test "Ban user" → verify user is banned and cannot submit further ratings.
+4. **Non-admin route guard**:
+   - Test visiting `/admin` while logged out or as a non-admin user → verify redirect to Home (`/`).
+
 ## Ideas not in scope
 
 - Code-split the main bundle (vite reports ~530 kB / 155 kB gzip after Phase 3, and it lands in the SW precache). Fine for a PWA; revisit if first load feels slow on real devices.
+
 

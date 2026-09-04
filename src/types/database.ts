@@ -71,6 +71,15 @@ export interface RatingWithItem extends Rating {
   item: Pick<Item, 'id' | 'name' | 'price' | 'category' | 'photo_url'> | null
 }
 
+// Report joined with rating, item, author, and reporter for moderation view
+export interface ReportWithDetails extends Report {
+  rating: (Rating & {
+    item: Pick<Item, 'id' | 'name' | 'price'> | null
+    author: Pick<User, 'id' | 'room_number'> | null
+  }) | null
+  reporter: Pick<User, 'id' | 'room_number'> | null
+}
+
 // Badge type derived from worth_it_pct
 export type WorthItStatus = 'worth_it' | 'skip_it' | 'mixed' | 'not_enough'
 

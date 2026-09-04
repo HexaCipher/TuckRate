@@ -6,6 +6,7 @@ import {
   IconChevronRight,
   IconAlertTriangle,
   IconNotes,
+  IconShield,
 } from '@tabler/icons-react'
 import { useAuth } from '../lib/auth-context'
 import { useProfile } from '../hooks/useProfile'
@@ -154,6 +155,20 @@ function ProfilePage() {
               <IconStarFilled size={12} />
               <span>{reviewCount} {reviewCount === 1 ? 'review' : 'reviews'}</span>
             </span>
+          </div>
+        )}
+
+        {/* Admin Moderation Queue Button */}
+        {profile.isSuccess && profile.data.is_admin && (
+          <div className="mt-4 pt-3 border-t border-border-subtle w-full flex justify-center">
+            <button
+              type="button"
+              onClick={() => navigate('/admin')}
+              className="inline-flex items-center gap-2 h-9 px-4 rounded-full bg-accent text-card text-xs font-semibold shadow-warm cursor-pointer active:scale-95 transition-all"
+            >
+              <IconShield size={15} />
+              <span>Moderation Queue</span>
+            </button>
           </div>
         )}
       </div>
