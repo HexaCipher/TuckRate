@@ -20,9 +20,9 @@ function formatDate(dateStr: string): string {
   })
 }
 
-function ReviewCard({ rating }: { rating: RatingWithUser }) {
+function ReviewCard({ rating, isOwn }: { rating: RatingWithUser; isOwn?: boolean }) {
   return (
-    <div className="py-4 border-b border-border-subtle last:border-b-0">
+    <div className={`py-4 border-b border-border-subtle last:border-b-0 ${isOwn ? 'bg-accent-light/10 -mx-2 px-2 rounded-xl' : ''}`}>
       <div className="flex items-center justify-between mb-1.5">
         <div className="flex items-center gap-2">
           <StarRating rating={rating.stars} />
@@ -43,6 +43,9 @@ function ReviewCard({ rating }: { rating: RatingWithUser }) {
       )}
 
       <div className="flex items-center gap-2 text-xs text-muted">
+        {isOwn && (
+          <span className="font-semibold text-accent">You</span>
+        )}
         {rating.user?.room_number && (
           <span>Room {rating.user.room_number}</span>
         )}
@@ -65,8 +68,8 @@ function ItemDetailPage() {
 
   function handleRate() {
     if (!user) {
-      // Auth-gated: redirect to login, then return here (docs/3-App-Flow.md §3)
-      navigate('/login', { state: { from: `/item/${id}` } })
+      // Auth-gated: redirect to login, then return to rate screen (docs/3-App-Flow.md §3)
+      navigate('/login', { state: { from: `/item/${id}/rate` } })
     } else {
       navigate(`/item/${id}/rate`)
     }
@@ -74,6 +77,15 @@ function ItemDetailPage() {
 
   // Check if the current user already has a rating for this item
   const userRating = data?.ratings.find(r => r.user_id === user?.id)
+
+  // Put user's own review at the top of the reviews list (docs/3-App-Flow.md §5)
+  const sortedRatings = data?.ratings
+    ? [...data.ratings].sort((a, b) => {
+        if (a.user_id === user?.id) return -1
+        if (b.user_id === user?.id) return 1
+        return 0
+      })
+    : []
 
   return (
     <div className="w-full max-w-[430px] mx-auto min-h-dvh flex flex-col">
@@ -185,8 +197,8 @@ function ItemDetailPage() {
               )}
 
               {/* Review cards */}
-              {data.ratings.map(rating => (
-                <ReviewCard key={rating.id} rating={rating} />
+              {sortedRatings.map(rating => (
+                <ReviewCard key={rating.id} rating={rating} isOwn={rating.user_id === user?.id} />
               ))}
             </div>
           </div>

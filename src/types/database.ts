@@ -66,6 +66,11 @@ export interface RatingWithUser extends Rating {
   user_rating_count?: number
 }
 
+// Rating joined with item info for display in profile my reviews list
+export interface RatingWithItem extends Rating {
+  item: Pick<Item, 'id' | 'name' | 'price' | 'category' | 'photo_url'> | null
+}
+
 // Badge type derived from worth_it_pct
 export type WorthItStatus = 'worth_it' | 'skip_it' | 'mixed' | 'not_enough'
 

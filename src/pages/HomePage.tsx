@@ -16,12 +16,20 @@ function formatCategory(category: string): string {
   return category.charAt(0).toUpperCase() + category.slice(1).toLowerCase()
 }
 
+type FilterType = 'top_rated' | 'under_50' | 'worth_it'
+
+const FILTER_OPTIONS: { id: FilterType; label: string }[] = [
+  { id: 'top_rated', label: 'Top rated' },
+  { id: 'under_50', label: 'Under ₹50' },
+  { id: 'worth_it', label: 'Worth it' },
+]
+
 /**
  * Home screen component per .agents/rules/design-system.md and docs/3-App-Flow.md §2.
  * Layout top to bottom:
  * 1. Header: "TuckRate" wordmark, item/rating count summary below it
  * 2. Search bar (rounded pill input, navigates to Search screen on tap)
- * 3. Category chip row, horizontally scrollable, using item categories from the schema
+ * 3. Filter chips: "Top rated", "Under ₹50", "Worth it" + category chips row
  * 4. Spotlight card: this week's top-rated item (no CTA button, no "Order Now")
  * 5. "Top Rated" horizontally scrollable card row (no add/plus button)
  * 6. Full menu list below (vertical rows: name + price left, star rating + badge right)
@@ -32,6 +40,7 @@ function formatCategory(category: string): string {
 function HomePage() {
   const navigate = useNavigate()
   const { data: items, isLoading, isError, refetch, isFetching } = useItems()
+  const [activeFilter, setActiveFilter] = useState<FilterType>('top_rated')
   const [selectedCategory, setSelectedCategory] = useState<string>('all')
 
   // Derive unique categories dynamically from fetched item data
@@ -66,9 +75,31 @@ function HomePage() {
   // Filtered menu list for the vertical section below
   const filteredList = useMemo(() => {
     if (!items) return []
-    if (selectedCategory === 'all') return items
-    return items.filter(i => i.category?.toLowerCase().trim() === selectedCategory)
-  }, [items, selectedCategory])
+    let list = [...items]
+
+    // 1. Category filter
+    if (selectedCategory !== 'all') {
+      list = list.filter(i => i.category?.toLowerCase().trim() === selectedCategory)
+    }
+
+    // 2. Sort / Quick filter
+    if (activeFilter === 'under_50') {
+      list = list.filter(i => Number(i.price) <= 50)
+      list.sort((a, b) => Number(a.price) - Number(b.price))
+    } else if (activeFilter === 'worth_it') {
+      list = list.filter(i => i.rating_count > 0 && i.worth_it_pct >= 70)
+      list.sort((a, b) => b.worth_it_pct - a.worth_it_pct || Number(b.avg_stars) - Number(a.avg_stars))
+    } else {
+      // 'top_rated'
+      list.sort((a, b) => {
+        const starDiff = Number(b.avg_stars) - Number(a.avg_stars)
+        if (starDiff !== 0) return starDiff
+        return b.rating_count - a.rating_count
+      })
+    }
+
+    return list
+  }, [items, selectedCategory, activeFilter])
 
   // Summary counts for header
   const totalItems = items?.length ?? 0
@@ -125,13 +156,23 @@ function HomePage() {
 
       {/* ─── State 1: Loading State ─── */}
       {isLoading && (
-        <div className="space-y-6">
+        <div className="space-y-5">
+          {/* Skeleton filter chips */}
+          <div className="flex items-center gap-2 overflow-hidden px-4">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div
+                key={i}
+                className="h-8 w-24 rounded-full bg-card border border-border-subtle animate-pulse shrink-0"
+              />
+            ))}
+          </div>
+
           {/* Skeleton category chips */}
           <div className="flex items-center gap-2.5 overflow-hidden px-4 py-1">
             {Array.from({ length: 4 }).map((_, i) => (
               <div
                 key={i}
-                className="h-9 w-20 rounded-full bg-card border border-border-subtle animate-pulse shrink-0"
+                className="h-8 w-20 rounded-full bg-card border border-border-subtle animate-pulse shrink-0"
               />
             ))}
           </div>
@@ -209,10 +250,32 @@ function HomePage() {
       {/* ─── State 4: Success State (Full Layout) ─── */}
       {!isLoading && items && items.length > 0 && (
         <div className="space-y-6">
-          {/* 3. Category chip row: horizontally scrollable, using schema categories */}
-          <div className="pb-1">
-            <div className="flex items-center gap-2.5 overflow-x-auto no-scrollbar px-4 py-1">
-              {categories.map(cat => {
+          {/* 3. Filter chips: "Top rated", "Under ₹50", "Worth it" + Category chips */}
+          <div className="space-y-2.5 pb-1">
+            {/* Quick Sort / Filter row */}
+            <div className="flex items-center gap-2 overflow-x-auto no-scrollbar px-4">
+              {FILTER_OPTIONS.map((filter) => {
+                const isSelected = activeFilter === filter.id
+                return (
+                  <button
+                    key={filter.id}
+                    type="button"
+                    onClick={() => setActiveFilter(filter.id)}
+                    className={`shrink-0 inline-flex items-center justify-center h-8 px-4 rounded-full text-xs transition-all select-none cursor-pointer ${
+                      isSelected
+                        ? 'bg-accent text-card font-semibold shadow-warm active:scale-95'
+                        : 'bg-card text-secondary border border-border-subtle hover:border-border-default hover:text-primary active:scale-95 font-medium'
+                    }`}
+                  >
+                    {filter.label}
+                  </button>
+                )
+              })}
+            </div>
+
+            {/* Category chips row */}
+            <div className="flex items-center gap-2 overflow-x-auto no-scrollbar px-4 py-0.5">
+              {categories.map((cat) => {
                 const isSelected = selectedCategory === cat
                 const label = cat === 'all' ? 'All' : formatCategory(cat)
 
@@ -221,10 +284,10 @@ function HomePage() {
                     key={cat}
                     type="button"
                     onClick={() => setSelectedCategory(cat)}
-                    className={`shrink-0 inline-flex items-center justify-center h-9 px-5 rounded-full text-xs transition-all select-none cursor-pointer ${
+                    className={`shrink-0 inline-flex items-center justify-center h-8 px-4 rounded-full text-xs transition-all select-none cursor-pointer ${
                       isSelected
                         ? 'bg-accent-light text-accent-dark font-semibold shadow-warm active:scale-95'
-                        : 'bg-card text-secondary border border-border-subtle hover:border-border-default hover:text-primary active:bg-elevated active:scale-95 font-medium'
+                        : 'bg-card/80 text-secondary border border-border-subtle hover:border-border-default hover:text-primary active:bg-elevated active:scale-95 font-medium'
                     }`}
                   >
                     {label}
@@ -266,16 +329,23 @@ function HomePage() {
             <div className="flex items-center justify-between">
               <h2 className="text-[15px] font-semibold text-primary tracking-tight">
                 {selectedCategory === 'all'
-                  ? 'All Menu Items'
+                  ? activeFilter === 'top_rated'
+                    ? 'All Menu Items'
+                    : activeFilter === 'under_50'
+                    ? `Under ₹50 (${filteredList.length})`
+                    : `Worth It (${filteredList.length})`
                   : `${formatCategory(selectedCategory)} (${filteredList.length})`}
               </h2>
-              {selectedCategory !== 'all' && (
+              {(selectedCategory !== 'all' || activeFilter !== 'top_rated') && (
                 <button
                   type="button"
-                  onClick={() => setSelectedCategory('all')}
+                  onClick={() => {
+                    setSelectedCategory('all')
+                    setActiveFilter('top_rated')
+                  }}
                   className="text-xs text-accent font-semibold hover:underline cursor-pointer"
                 >
-                  Show all
+                  Reset filters
                 </button>
               )}
             </div>
@@ -283,14 +353,17 @@ function HomePage() {
             {filteredList.length === 0 ? (
               <div className="py-8 text-center rounded-2xl bg-card border border-border-subtle p-4">
                 <p className="text-xs text-secondary">
-                  No items found in {formatCategory(selectedCategory)}.
+                  No items match the selected filters.
                 </p>
                 <button
                   type="button"
-                  onClick={() => setSelectedCategory('all')}
-                  className="text-xs text-accent font-medium hover:underline mt-2 inline-block"
+                  onClick={() => {
+                    setSelectedCategory('all')
+                    setActiveFilter('top_rated')
+                  }}
+                  className="text-xs text-accent font-medium hover:underline mt-2 inline-block cursor-pointer"
                 >
-                  Reset filter
+                  Reset filters
                 </button>
               </div>
             ) : (

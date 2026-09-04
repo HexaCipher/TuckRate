@@ -6,9 +6,9 @@ Live status per `docs/6-Implementation-Plan.md`. One phase at a time.
 |---|---|
 | 0. Setup | ✅ Complete |
 | 1. Database | ✅ Complete (verified in live DB) |
-| 2. Authentication | 🟨 Code complete — live OTP test pending |
-| 3. Core UI | 🟨 Code complete — item_stats view + live browsing test pending |
-| 4. Main Features | ⬜ Not started |
+| 2. Authentication | ✅ Complete (magic link instead of OTP code — Resend integration deferred) |
+| 3. Core UI | ✅ Complete (user-verified working) |
+| 4. Main Features | ✅ Complete (user-verified working) |
 | 5. Trust & Moderation | ⬜ Not started |
 | 6. Nice-to-have Integrations | ⬜ Deferred until core loop is validated |
 | 7. Testing | ⬜ Not started |
@@ -104,6 +104,37 @@ Live status per `docs/6-Implementation-Plan.md`. One phase at a time.
   - `App.tsx`: Increased bottom clearance from `pb-16` to `pb-24` ensuring the last menu item is never obscured by the fixed bottom navigation bar.
   - `src/index.css`: Removed universal `margin: 0; padding: 0;` from `*` to let Tailwind v4 utilities control spacing cleanly.
 
+### Phase 4 — Main Features (this session)
+- **Rate & Review Screen (`src/pages/RatePage.tsx`):**
+  - Built full screen following App Flow §5 with custom `RateForm` component.
+  - Star selector (1–5) with 44px+ touch targets and amber fills; "Worth the price?" required Yes/No toggle pills; optional review text with 500-char counter; optional hygiene issue checkbox.
+  - Form pre-fills automatically when user already has an existing rating for the item; button dynamically switches between "Submit rating" and "Update rating".
+  - Network error preservation: keeps form inputs intact if mutation fails.
+  - Redirects logged-out visitors to `/login` with `from: /item/:id/rate` return path.
+- **Rating Upsert Mutation (`src/hooks/useSubmitRating.ts`):**
+  - Uses `supabase.from('ratings').upsert(..., { onConflict: 'user_id,item_id' })` leveraging the database unique constraint.
+  - Invalidates `item-detail`, `items`, and `my-reviews` TanStack Query caches on success.
+- **Existing Rating Query (`src/hooks/useUserRating.ts`):**
+  - Fetches existing rating for `(user_id, item_id)` to pre-fill the edit form.
+- **Search Screen (`src/pages/SearchPage.tsx`):**
+  - Real-time client-side search across menu item names and categories using cached `useItems()` data.
+  - Auto-focuses search input on mount, includes clear `X` button, back navigation to Home.
+  - All 4 states: loading skeleton, full error state with retry, empty state with clear suggestion, and filtered results list.
+- **Profile Screen — My Reviews (`src/pages/ProfilePage.tsx`):**
+  - Integrated `src/hooks/useMyReviews.ts` fetching user's rating history joined with item details.
+  - Dynamic contribution badge (`X reviews`), review cards with item name, price, stars, worth-it badge, date, and review snippet. Tappable to navigate directly to item detail.
+  - All 4 states: loading skeleton, error with retry, empty state ("You haven't rated anything yet" with "Browse menu" CTA), and populated reviews list.
+- **Home Filter Chips (`src/pages/HomePage.tsx`):**
+  - Added quick filter pill row ("Top rated", "Under ₹50", "Worth it") above category chips.
+  - Combines filter selection with category selection in `filteredList` memo.
+  - Menu list header dynamically updates with filter label and count, plus "Reset filters" CTA.
+- **Toast Notifications (`src/components/Toast.tsx`, `src/components/ToastProvider.tsx`, `src/hooks/useToast.ts`):**
+  - Lightweight in-house toast notification system styled in warm theme palette, positioned safely above bottom navigation.
+  - Triggered on rating submission ("Rating saved" / "Rating updated").
+- **Build & Quality:**
+  - `npm run lint`: oxlint passes with 0 warnings and 0 errors.
+  - `npm run build`: `tsc -b && vite build` passes with 0 errors.
+
 ## Remaining manual steps (do before calling Phase 2 complete)
 1. Optional: disable the GitHub integration in Supabase (Project Settings → Integrations → GitHub) to stop the failing "Supabase Preview" check on every commit.
 2. **Check the Auth email template uses `{{ .Token }}`** (Dashboard → Authentication → Emails → Templates, "Magic Link"). `signInWithOtp` sends a 6-digit code only when the template includes `.Token`; with only `.ConfirmationURL` users get a magic link instead. Default templates include both, but verify.
@@ -118,6 +149,29 @@ Live status per `docs/6-Implementation-Plan.md`. One phase at a time.
 4. Verify all four states on Item Detail: success (item + reviews render), loading (skeletons), empty reviews ("No reviews yet — be the first."), error (retry button, back nav still works).
 5. Verify bottom nav: appears on Home/Search/Profile; hidden on `/login` and `/item/:id/rate`.
 6. Verify mobile viewport (360–430px) layout and warm cream/terracotta theme palette match .agents/rules/design-system.md.
+
+## Remaining manual steps (do before calling Phase 4 complete)
+1. **Rate & Review flow**:
+   - Logged out: tap "Rate this item" on Item Detail → redirects to `/login` with return path → log in → lands on Rate screen.
+   - Fill stars (1–5), "Worth the price?" (Yes/No), optional text review, and optional hygiene flag.
+   - Tap "Submit rating" → verify toast "Rating saved" → navigate back to Item Detail → see user review at the top with "You" badge.
+2. **Edit rating flow**:
+   - Tap "Edit your rating" on an already-rated item → form loads with previous stars, toggle, review text, and hygiene flag pre-filled.
+   - Modify fields → submit "Update rating" → verify toast "Rating updated" → detail screen reflects new data.
+3. **Home filter chips**:
+   - Tap "Under ₹50" → verify list filters to items ≤ ₹50.
+   - Tap "Worth it" → verify list filters to items with positive rating consensus.
+   - Tap "Top rated" → verify list sorts by stars descending.
+   - Combine with category chips (e.g. "Snacks" + "Under ₹50").
+4. **Search screen**:
+   - Tap search bar from Home → verify auto-focus on search input.
+   - Type item name or category → verify real-time filtering without lag.
+   - Test empty search query, no-matches state, clear button (`X`), and back arrow navigation.
+5. **My Reviews on Profile**:
+   - Visit Profile → verify review count badge (e.g. "1 review").
+   - Verify list of submitted reviews renders with item name, price, stars, and review text.
+   - Tap a review → navigates to Item Detail.
+   - Test empty state when user has 0 ratings ("You haven't rated anything yet" + "Browse menu" button).
 
 ## Ideas not in scope
 
