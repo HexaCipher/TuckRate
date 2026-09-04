@@ -6,7 +6,7 @@ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY ?? ''
 // In development, warn instead of crashing if env vars are missing
 if (!supabaseUrl || !supabaseAnonKey) {
   console.warn(
-    '[TuckRate] Missing Supabase environment variables. ' +
+    '[WorthIt] Missing Supabase environment variables. ' +
     'Copy .env.example to .env and fill in your Supabase project URL and anon key. ' +
     'The app will load but data features won\'t work.'
   )

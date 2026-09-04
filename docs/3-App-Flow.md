@@ -1,6 +1,6 @@
 # App Flow Document
 
-## Product: TuckRate
+## Product: WorthIt
 
 This document specifies every screen, user action, navigation path, and state (success/error/empty) needed to build the app without guessing. Written for direct use by an AI coding agent.
 

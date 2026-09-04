@@ -1,13 +1,13 @@
 # Product Requirements Document (PRD)
 
 ## Product name (working title)
-**TuckRate** — a food rating PWA for hostel tuck shops
+**WorthIt** — a food rating PWA for hostel tuck shops
 
 ---
 
 ## 1. App Overview
 
-TuckRate is a mobile-first Progressive Web App that lets hostel students rate and review individual food items sold at their hostel tuck shop, so other students can make a fast, informed decision ("is this worth my money?") before buying.
+WorthIt is a mobile-first Progressive Web App that lets hostel students rate and review individual food items sold at their hostel tuck shop, so other students can make a fast, informed decision ("is this worth my money?") before buying.
 
 This is a **hobby project**, scoped intentionally small: **one tuck shop, one boys' hostel**, to start. It's built to be genuinely useful, not to be a startup from day one — validation and real usage matter more than feature completeness.
 

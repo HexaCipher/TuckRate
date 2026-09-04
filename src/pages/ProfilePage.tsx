@@ -103,7 +103,7 @@ function ProfilePage() {
     try {
       await signOut()
     } catch (err) {
-      console.warn('[TuckRate] Logout failed:', err)
+      console.warn('[WorthIt] Logout failed:', err)
     }
   }
 

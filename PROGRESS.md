@@ -64,7 +64,7 @@ Live status per `docs/6-Implementation-Plan.md`. One phase at a time.
   - Rating badge palette: "Worth it" (`#E3F3E9` / `#3F8F5F`), "Skip it" (`#FBE7E5` / `#B23B3B`), "Mixed" (`#FBF0DC` / `#C98A26`).
   - Added soft warm shadow utilities (`shadow-warm`, `shadow-warm-md`, `shadow-warm-lg`) and 16–20px card radiuses.
 - **Home Screen Rebuild (`src/pages/HomePage.tsx`):** Complete rebuild following the 7-level layout:
-  1. Header: "TuckRate" wordmark in SemiBold warm typography + dynamic rating/item count summary.
+  1. Header: "WorthIt" wordmark in SemiBold warm typography + dynamic rating/item count summary.
   2. Search bar: rounded pill input (`rounded-full`), warm surface, navigates to `/search` on tap.
   3. Category chip row: horizontally scrollable, dynamically derived from schema categories (`All`, `Snacks`, `Meals`, `Beverages`), styled per design rules (`#F4C9B4` active background with terracotta text).
   4. Spotlight card (`SpotlightCard`): This week's top-rated item hero card with photo (or category-tinted placeholder), name, price, star rating, and rating badge. Tappable to detail; explicitly no CTA / "Order Now" button.
@@ -81,7 +81,7 @@ Live status per `docs/6-Implementation-Plan.md`. One phase at a time.
   - `src/components/WorthItBadge.tsx`: Light-tint bg with dark text pairs per warm theme.
   - `src/components/StarRating.tsx`: Amber star (`#C98A26`), compact "★ 4.3" layout, size variants.
   - `src/components/SkeletonCard.tsx`: Warm cream pulse placeholders (`SkeletonCard`, `SkeletonSpotlight`, `SkeletonTopRatedCard`).
-  - `src/components/Header.tsx`: TuckRate brand wordmark + summary subtitle prop + warm profile button.
+  - `src/components/Header.tsx`: WorthIt brand wordmark + summary subtitle prop + warm profile button.
   - `src/components/BottomNav.tsx`: 3-item navigation with warm pill active indicator.
 - **Build & Quality:**
   - `npm run lint`: oxlint passes with 0 warnings and 0 errors.
@@ -93,7 +93,7 @@ Live status per `docs/6-Implementation-Plan.md`. One phase at a time.
   - Placed `px-4 py-1` directly on the horizontal scroll container so the first chip ("All") starts cleanly at 16px from screen bezel without clipping.
   - Upgraded chip buttons to `inline-flex items-center justify-center h-9 px-5 rounded-full text-xs font-medium` with `gap-2.5` so each chip's background (`bg-card` or `bg-accent-light`) has generous 20px horizontal padding and comfortable vertical padding around the label text.
 - **Top Header & Mobile Safe Areas:**
-  - Added `pt-6 pb-2.5 px-4` with `max(1.5rem, env(safe-area-inset-top, 1.5rem))` in `Header.tsx` so "TuckRate" and the profile button have breathing space and never collide with phone status bars/bezels.
+  - Added `pt-6 pb-2.5 px-4` with `max(1.5rem, env(safe-area-inset-top, 1.5rem))` in `Header.tsx` so "WorthIt" and the profile button have breathing space and never collide with phone status bars/bezels.
   - Synchronized `<meta name="theme-color" content="#F7EFE3" />` in `index.html` to warm cream.
 - **Card Padding & Spacing:**
   - `SpotlightCard`: Info row padding increased to `p-4`.
@@ -170,6 +170,29 @@ Live status per `docs/6-Implementation-Plan.md`. One phase at a time.
   - Stored raw JSON menu with 147 items across 16 categories.
   - Implemented deduplicated bulk seeder using service-role key.
   - Cleared 10 old demo items and re-seeded missing items for a verified 147/147 items match.
+
+### Home Experience Refinement (Staff Frontend & Product Design)
+- **Header (`src/components/Header.tsx`):**
+  - Prominent WorthIt wordmark display (`/wordmark.png`), brand tagline *"Hostel food. Honest opinions."*, and authenticated user profile button.
+- **Indian Veg/Non-Veg Badges (`src/components/VegBadge.tsx`):**
+  - Created accessible FSSAI-style green dot and brown triangle indicator symbols, integrated into `ItemCard`, `TopRatedCard`, `SpotlightCard`, and `ItemDetailPage`.
+- **Search & Filter Bottom Sheet Modal (`src/components/FilterModal.tsx`):**
+  - Added slider/adjustments trigger in the search bar.
+  - Bottom sheet modal supporting Price range (`Any`, `Under ₹30`, `Under ₹50`, `Under ₹100`), Sorting (`Top rated`, `Most reviewed`, `Price: Low to high`, `Price: High to low`), and Dietary (`All`, `Veg only`).
+- **Visual Category Scroller (`src/lib/categories.ts`, `src/components/CategoryPlaceholder.tsx`):**
+  - Built icon-driven category scroller supporting all 16 tuck shop categories with distinctive Tabler icons and warm background tints.
+- **Hero Spotlight Experience (`src/components/SpotlightCard.tsx`):**
+  - Redesigned 20px rounded hero banner providing immediate decision value (item, price, veg tag, star rating & count, worth-it %).
+  - Clean empty/unrated handling: invites students to be the first to rate instead of displaying broken `★ — (0)`.
+- **Top Rated Section (`src/components/TopRatedCard.tsx`):**
+  - Added `#1`, `#2`, `#3` rank badges, veg indicators, price, star rating, and worth-it percentage pill.
+- **Menu List Scanning (`src/components/ItemCard.tsx`):**
+  - Upgraded to rich scannable rows with 52×52px thumbnail, veg badge, name, category, price, star rating, and worth-it consensus.
+  - Responsive 2-column grid on tablet/desktop (`sm:grid-cols-2`) for fast scanning across 147 items.
+- **Build & Quality:**
+  - `npm run lint`: oxlint passes with 0 warnings and 0 errors across 41 files.
+  - `npm run build`: `tsc -b && vite build` passes with 0 errors.
+  - `npx impeccable detect src/`: 0 anti-patterns.
 
 ## Remaining manual steps (do before calling Phase 2 complete)
 1. Optional: disable the GitHub integration in Supabase (Project Settings → Integrations → GitHub) to stop the failing "Supabase Preview" check on every commit.

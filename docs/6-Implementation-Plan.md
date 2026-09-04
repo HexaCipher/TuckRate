@@ -1,6 +1,6 @@
 # Implementation Plan
 
-## Product: TuckRate
+## Product: WorthIt
 
 Phased build plan for a solo developer working with an AI coding agent (Claude Code or similar). Each phase lists concrete deliverables so progress is checkable.
 

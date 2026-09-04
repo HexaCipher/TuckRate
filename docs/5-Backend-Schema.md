@@ -1,6 +1,6 @@
 # Backend Schema
 
-## Product: TuckRate
+## Product: WorthIt
 ## Database: PostgreSQL (via Supabase)
 
 ---

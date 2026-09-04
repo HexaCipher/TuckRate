@@ -1,4 +1,4 @@
--- TuckRate Phase 3 — aggregated item stats view
+-- WorthIt Phase 3 — aggregated item stats view
 -- Paste this into the Supabase SQL editor to create the view.
 -- Recorded here as the migration file for the repo record.
 

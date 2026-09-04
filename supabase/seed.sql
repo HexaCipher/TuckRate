@@ -1,4 +1,4 @@
--- TuckRate seed data — ~10 sample items for development/testing.
+-- WorthIt seed data — ~10 sample items for development/testing.
 --
 -- NOTE: the Supabase Git integration does NOT auto-apply seed files.
 -- Run this once via the Supabase dashboard → SQL editor.

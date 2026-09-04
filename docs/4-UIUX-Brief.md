@@ -1,6 +1,6 @@
 # UI/UX Design Brief
 
-## Product: TuckRate
+## Product: WorthIt
 
 **Note:** the color palette and component styling below reflect the current warm/light theme. The live, enforced source of truth for the agent is the Antigravity workspace Rule at `.agents/rules/design-system.md` (content originally from `8-Antigravity-Design-Rule.md`) — if the two ever drift, the Rule wins since it's what actually governs generated code. This doc is the fuller reference for anyone reading `/docs` end to end. Typography, layout, mobile responsiveness, and UX principles below are unchanged since the original dark-theme version and remain accurate.
 
@@ -98,7 +98,7 @@ Not part of MVP, but noting direction for when it's built: a simple, non-punitiv
 ## 9. Visual References (for direction, not literal copying)
 
 - **Traffic-light rating systems** (like Uber driver ratings, but simplified to 3 states) — for the worth-it/skip-it/mixed badge convention.
-- **Warm, photography-forward food ordering apps** — for overall tonal/polish reference on color and imagery treatment only. Note: TuckRate is a rating app, not an ordering app — never carry over cart icons, add-to-cart buttons, checkout flows, or points/rewards mechanics from this kind of reference, even where they'd visually fit the layout.
+- **Warm, photography-forward food ordering apps** — for overall tonal/polish reference on color and imagery treatment only. Note: WorthIt is a rating app, not an ordering app — never carry over cart icons, add-to-cart buttons, checkout flows, or points/rewards mechanics from this kind of reference, even where they'd visually fit the layout.
 - **Zomato/Swiggy's information density on a list row** (name, price, rating all visible without tapping in) — useful pattern to borrow for the Home list, even while avoiding their color/branding directly.
 
 ---

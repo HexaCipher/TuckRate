@@ -1,7 +1,7 @@
-# AGENTS.md — TuckRate
+# AGENTS.md — WorthIt
 
 ## Project summary
-TuckRate is a mobile-first PWA that lets hostel students rate and review individual tuck shop food items, so others can decide fast whether an item is worth buying. This is a **hobby project**, deliberately scoped small: one tuck shop, one boys' hostel, for v1. Validation and real usage matter more than feature completeness — do not build ahead of what's actually needed.
+WorthIt is a mobile-first PWA that lets hostel students rate and review individual tuck shop food items, so others can decide fast whether an item is worth buying. This is a **hobby project**, deliberately scoped small: one tuck shop, one boys' hostel, for v1. Validation and real usage matter more than feature completeness — do not build ahead of what's actually needed.
 
 ## Source of truth
 Full specs live in `/docs`. Read the relevant doc before building in that area — don't guess at screen behavior, colors, or schema when it's already specified.
@@ -51,7 +51,7 @@ At the start of every session:
 - Push notifications
 - Native app — PWA only
 
-TuckRate: a PWA for rating hostel tuck-shop food. Vite + React 19 + TypeScript SPA backed by Supabase, deployed to Vercel.
+WorthIt: a PWA for rating hostel tuck-shop food. Vite + React 19 + TypeScript SPA backed by Supabase, deployed to Vercel.
 
 ## Commands
 
@@ -62,7 +62,7 @@ TuckRate: a PWA for rating hostel tuck-shop food. Vite + React 19 + TypeScript S
 
 ## Environment
 
-- Requires `.env` with `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` (see `.env.example`). Without it the app still boots but logs a console warning and data features fail — check for `[TuckRate] Missing Supabase environment variables` when debugging.
+- Requires `.env` with `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` (see `.env.example`). Without it the app still boots but logs a console warning and data features fail — check for `[WorthIt] Missing Supabase environment variables` when debugging.
 
 ## Architecture
 
@@ -70,7 +70,7 @@ TuckRate: a PWA for rating hostel tuck-shop food. Vite + React 19 + TypeScript S
 - Backend is entirely Supabase (auth via email OTP, Postgres with RLS, REST). Client singleton in `src/lib/supabase.ts`; use `isSupabaseConfigured` before data calls.
 - DB schema types in `src/types/database.ts` are maintained by hand to mirror `docs/5-Backend-Schema.md` — update them whenever the schema changes.
 - Schema SQL lives in `supabase/migrations/*.sql` and `supabase/seed.sql`. The Supabase **GitHub integration is not used** (it aborted with "Remote migration versions not found in local migrations directory"). Apply schema changes via the **Supabase MCP `apply_migration` tool** (records migration history) or the SQL editor, then write the same SQL into a `supabase/migrations/` file — these files are only a record, nothing applies them automatically, so they drift if you skip that step.
-- This Supabase project is **recycled from an unrelated student/department app**; migration history versions `20260316*` belong to it, not TuckRate. Its orphaned functions were dropped in `20260827135721`. Don't be confused by that history, and don't assume the remote DB started clean.
+- This Supabase project is **recycled from an unrelated student/department app**; migration history versions `20260316*` belong to it, not WorthIt. Its orphaned functions were dropped in `20260827135721`. Don't be confused by that history, and don't assume the remote DB started clean.
 - Tailwind CSS v4 uses CSS-first config: theme tokens/colors live in `src/index.css` under `@theme`. There is no `tailwind.config.js`.
 - PWA via `vite-plugin-pwa` (`vite.config.ts`): autoUpdate service worker caches built assets and runtime-caches Supabase REST responses (1h NetworkFirst) for offline menu browsing.
 

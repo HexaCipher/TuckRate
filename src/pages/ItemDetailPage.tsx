@@ -9,6 +9,7 @@ import {
 import StarRating from '../components/StarRating'
 import WorthItBadge from '../components/WorthItBadge'
 import ReportModal from '../components/ReportModal'
+import VegBadge from '../components/VegBadge'
 import { useItemDetail } from '../hooks/useItemDetail'
 import { useAuth } from '../lib/auth-context'
 import type { RatingWithUser } from '../types/database'
@@ -163,9 +164,12 @@ function ItemDetailPage() {
         <>
           <div className="flex-1 overflow-y-auto px-4 pb-24">
             {/* Item info */}
-            <div className="flex items-baseline justify-between mb-1">
-              <span className="text-xs text-secondary">{data.item.category ?? 'Menu item'}</span>
-              <span className="text-base font-medium text-primary">₹{Number(data.item.price)}</span>
+            <div className="flex items-center justify-between mb-1">
+              <div className="flex items-center gap-1.5">
+                <VegBadge isVeg={data.item.is_veg} size="sm" />
+                <span className="text-xs text-secondary capitalize">{data.item.category ?? 'Menu item'}</span>
+              </div>
+              <span className="text-base font-semibold text-primary">₹{Number(data.item.price)}</span>
             </div>
 
             {/* Rating hero area */}

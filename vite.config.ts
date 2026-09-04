@@ -10,10 +10,10 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.svg'],
+      includeAssets: ['favicon.png', 'wordmark.png'],
       manifest: {
-        name: 'TuckRate',
-        short_name: 'TuckRate',
+        name: 'WorthIt',
+        short_name: 'WorthIt',
         description: 'Rate & review your hostel tuck shop food',
         theme_color: '#17181C',
         background_color: '#17181C',

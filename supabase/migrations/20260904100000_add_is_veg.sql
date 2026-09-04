@@ -1,4 +1,4 @@
--- TuckRate — add is_veg column to items table
+-- WorthIt — add is_veg column to items table
 -- Source menu data includes a veg/non-veg flag per item.
 -- Default true because most items in the tuck shop are vegetarian.
 

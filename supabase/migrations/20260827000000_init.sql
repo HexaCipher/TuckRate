@@ -1,4 +1,4 @@
--- TuckRate initial schema — per docs/5-Backend-Schema.md
+-- WorthIt initial schema — per docs/5-Backend-Schema.md
 -- Applied automatically by the Supabase GitHub integration (Deploy to production)
 -- on push to the connected branch. Runs once; tracked in the migration history table.
 --

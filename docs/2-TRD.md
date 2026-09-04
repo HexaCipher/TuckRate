@@ -1,6 +1,6 @@
 # Technical Requirements Document (TRD)
 
-## Product: TuckRate (hostel tuck shop rating PWA)
+## Product: WorthIt (hostel tuck shop rating PWA)
 
 This TRD is written for a **solo hobby-project build**, intended to be executed with an AI coding agent (Claude Code or similar). Stack choices prioritize: low setup overhead, minimal backend code to write/maintain, strong defaults for auth and security, and PWA installability.
 

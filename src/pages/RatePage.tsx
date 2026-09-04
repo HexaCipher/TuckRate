@@ -61,7 +61,7 @@ function RateForm({ itemId, userId, item, existingRating, onSubmitSuccess }: Rat
 
       onSubmitSuccess()
     } catch (err) {
-      console.error('[TuckRate] Failed to submit rating:', err)
+      console.error('[WorthIt] Failed to submit rating:', err)
     }
   }
 
