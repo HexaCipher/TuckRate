@@ -30,6 +30,7 @@ The tuck shop menu.
 | `category` | `text` | nullable | e.g. "snacks," "beverages," "meals" |
 | `photo_url` | `text` | nullable | Menu/reference photo (Supabase Storage URL) |
 | `is_active` | `boolean` | not null, default `true` | Soft-delete/hide items no longer sold |
+| `is_veg` | `boolean` | not null, default `true` | True = vegetarian, false = non-veg (egg/meat) |
 | `created_at` | `timestamptz` | not null, default `now()` | |
 | `updated_at` | `timestamptz` | not null, default `now()` | |
 

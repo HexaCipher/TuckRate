@@ -159,6 +159,18 @@ Live status per `docs/6-Implementation-Plan.md`. One phase at a time.
   - `npm run lint`: oxlint passes with 0 warnings and 0 errors across 35 files.
   - `npm run build`: `tsc -b && vite build` passes with 0 errors.
 
+### Menu Data Seeding & Schema Update
+- **Schema & Migration (`supabase/migrations/20260904100000_add_is_veg.sql`):**
+  - Added `is_veg boolean not null default true` column to `items` table.
+  - Rebuilt `item_stats` view to include `is_veg` for filtering.
+  - Updated `docs/5-Backend-Schema.md` and `src/types/database.ts` accordingly.
+- **Restaurant Configuration (`src/config/restaurant.ts`):**
+  - Static vendor profile for Saini Fast Food (contact numbers, meals served, preparation notice).
+- **Menu Seeding (`data/menu-seed.json`, `scripts/seed-menu.ts`, `scripts/remove-old-demo.ts`):**
+  - Stored raw JSON menu with 147 items across 16 categories.
+  - Implemented deduplicated bulk seeder using service-role key.
+  - Cleared 10 old demo items and re-seeded missing items for a verified 147/147 items match.
+
 ## Remaining manual steps (do before calling Phase 2 complete)
 1. Optional: disable the GitHub integration in Supabase (Project Settings → Integrations → GitHub) to stop the failing "Supabase Preview" check on every commit.
 2. **Check the Auth email template uses `{{ .Token }}`** (Dashboard → Authentication → Emails → Templates, "Magic Link"). `signInWithOtp` sends a 6-digit code only when the template includes `.Token`; with only `.ConfirmationURL` users get a magic link instead. Default templates include both, but verify.

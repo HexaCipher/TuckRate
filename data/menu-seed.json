@@ -1,0 +1,244 @@
+{
+  "restaurant": {
+    "name": "Saini Fast Food",
+    "contact": [
+      "+919592694243",
+      "+918360124450"
+    ],
+    "meals_served": [
+      "Breakfast",
+      "Lunch",
+      "Dinner"
+    ],
+    "prep_time_notice": "Please wait for 10-15 minutes after order for better preparation"
+  },
+  "menu": [
+    {
+      "category": "Combo",
+      "items": [
+        { "name": "Cheese Burger + French Fries + Shake", "price": 180, "is_veg": true },
+        { "name": "Veg Sandwich + French Fries + Shake", "price": 180, "is_veg": true },
+        { "name": "Cheese Burger + French Fries", "price": 130, "is_veg": true },
+        { "name": "Pizza + Cold Drink 200ml", "price": 150, "is_veg": true },
+        { "name": "Cheese Burger + Cold Drink", "price": 85, "is_veg": true }
+      ]
+    },
+    {
+      "category": "Juice",
+      "items": [
+        { "name": "Mix Juice", "price": 70, "is_veg": true },
+        { "name": "Mosami Juice", "price": 70, "is_veg": true },
+        { "name": "Carrot Juice", "price": 50, "is_veg": true },
+        { "name": "Orange Juice", "price": 60, "is_veg": true },
+        { "name": "Pineapple Juice", "price": 70, "is_veg": true },
+        { "name": "Watermelon Juice", "price": 60, "is_veg": true }
+      ]
+    },
+    {
+      "category": "Prantha & Breads",
+      "items": [
+        { "name": "Plain Prantha", "price": 30, "is_veg": true },
+        { "name": "Mix Prantha", "price": 50, "is_veg": true },
+        { "name": "Paneer Prantha", "price": 60, "is_veg": true },
+        { "name": "Butter Naan + Channa", "price": 85, "is_veg": true }
+      ]
+    },
+    {
+      "category": "Starters",
+      "items": [
+        { "name": "Chana Samosa", "price": 70, "is_veg": true },
+        { "name": "Chana Bhatura", "price": 70, "is_veg": true },
+        { "name": "Nutri Kulcha", "price": 70, "is_veg": true },
+        { "name": "Chana Kulcha", "price": 70, "is_veg": true },
+        { "name": "Bread Omelete", "price": 60, "is_veg": false },
+        { "name": "Egg Omelete", "price": 50, "is_veg": false },
+        { "name": "Boiled Egg (5 Pc)", "price": 60, "is_veg": false },
+        { "name": "Red Sauce Pasta", "price": 100, "is_veg": true },
+        { "name": "White Sauce Pasta", "price": 110, "is_veg": true },
+        { "name": "Mix Sauce Pasta", "price": 110, "is_veg": true },
+        { "name": "Macaroni", "price": 100, "is_veg": true },
+        { "name": "Veg Maggi", "price": 50, "is_veg": true },
+        { "name": "Plain Maggi", "price": 35, "is_veg": true },
+        { "name": "Egg Maggi", "price": 70, "is_veg": false },
+        { "name": "Spring Roll", "price": 70, "is_veg": true },
+        { "name": "Masala Fries", "price": 80, "is_veg": true },
+        { "name": "Gol gappa (Plate)", "price": 60, "is_veg": true },
+        { "name": "Aloo Tikki Chaat", "price": 60, "is_veg": true },
+        { "name": "Bread Toast", "price": 40, "is_veg": true },
+        { "name": "Veg Steam Momos", "price": 70, "is_veg": true },
+        { "name": "Veg Fried Momos", "price": 80, "is_veg": true },
+        { "name": "Veg Crispy Momos", "price": 100, "is_veg": true },
+        { "name": "Non Veg Steam Momos", "price": 110, "is_veg": false },
+        { "name": "Non Veg Fried Momos", "price": 120, "is_veg": false },
+        { "name": "Non Veg Crispy Momos", "price": 130, "is_veg": false },
+        { "name": "Chilly Momos (Veg)", "price": 130, "is_veg": true },
+        { "name": "Chilly Momos (Non Veg)", "price": 130, "is_veg": false }
+      ]
+    },
+    {
+      "category": "Main Course Non-Veg",
+      "items": [
+        { "name": "Fry Chicken (Half)", "price": 250, "is_veg": false },
+        { "name": "Chilly Chicken (Half)", "price": 270, "is_veg": false },
+        { "name": "Masala Chicken (Half)", "price": 280, "is_veg": false },
+        { "name": "Kadhai Chicken (Half)", "price": 280, "is_veg": false }
+      ]
+    },
+    {
+      "category": "Beverages",
+      "items": [
+        { "name": "Tea", "price": 20, "is_veg": true },
+        { "name": "Hot Coffee", "price": 30, "is_veg": true },
+        { "name": "Ice Tea Cold Coffee", "price": 50, "is_veg": true },
+        { "name": "Nimbbu Pani", "price": 35, "is_veg": true },
+        { "name": "Lemon Soda", "price": 50, "is_veg": true },
+        { "name": "Mojito", "price": 60, "is_veg": true }
+      ]
+    },
+    {
+      "category": "Shakes",
+      "items": [
+        { "name": "Chocolate Shake", "price": 50, "is_veg": true },
+        { "name": "Vanilla Shake", "price": 50, "is_veg": true },
+        { "name": "Strawberry Shake", "price": 50, "is_veg": true },
+        { "name": "Butter Scotch Shake", "price": 50, "is_veg": true },
+        { "name": "Kesar Pista Shake", "price": 50, "is_veg": true },
+        { "name": "Oreo Shake", "price": 60, "is_veg": true },
+        { "name": "Banana Shake", "price": 50, "is_veg": true },
+        { "name": "Mango Shake", "price": 60, "is_veg": true },
+        { "name": "Paan Shake", "price": 50, "is_veg": true },
+        { "name": "Fanta Shake", "price": 50, "is_veg": true },
+        { "name": "Papaya Shake", "price": 60, "is_veg": true },
+        { "name": "Black Currant Shake", "price": 50, "is_veg": true },
+        { "name": "Kit Kat Shake", "price": 70, "is_veg": true },
+        { "name": "Brownie Shake", "price": 70, "is_veg": true }
+      ]
+    },
+    {
+      "category": "Pizza",
+      "items": [
+        { "name": "Vegetable Pizza", "price": 130, "is_veg": true },
+        { "name": "Paneer Pizza", "price": 150, "is_veg": true },
+        { "name": "Veg Cheese Pizza", "price": 160, "is_veg": true },
+        { "name": "Double Cheese Pizza", "price": 170, "is_veg": true },
+        { "name": "Mushroom Pizza", "price": 170, "is_veg": true },
+        { "name": "Chicken Pizza", "price": 220, "is_veg": false }
+      ]
+    },
+    {
+      "category": "Kathi Roll",
+      "items": [
+        { "name": "Veg Roll", "price": 60, "is_veg": true },
+        { "name": "Double Cheese Roll", "price": 90, "is_veg": true },
+        { "name": "Veg Sweet Corn Roll", "price": 80, "is_veg": true },
+        { "name": "Potato Chilly Roll", "price": 80, "is_veg": true },
+        { "name": "Paneer Roll", "price": 80, "is_veg": true },
+        { "name": "Chaap Roll", "price": 90, "is_veg": true },
+        { "name": "Egg Cheese Roll", "price": 90, "is_veg": false },
+        { "name": "Egg Prantha", "price": 60, "is_veg": false },
+        { "name": "Egg Champ Roll", "price": 90, "is_veg": false }
+      ]
+    },
+    {
+      "category": "Sandwich",
+      "items": [
+        { "name": "Veg Sandwich", "price": 70, "is_veg": true },
+        { "name": "Paneer Sandwich", "price": 80, "is_veg": true },
+        { "name": "Cheese Burst Sandwich", "price": 90, "is_veg": true },
+        { "name": "Mushroom Corn Sandwich", "price": 90, "is_veg": true },
+        { "name": "Sweet Corn Sandwich", "price": 80, "is_veg": true },
+        { "name": "Brown Bread Sandwich", "price": 70, "is_veg": true },
+        { "name": "Potato Tikka Sandwich", "price": 80, "is_veg": true },
+        { "name": "Paneer Korma Sandwich", "price": 80, "is_veg": true },
+        { "name": "Egg Sandwich", "price": 90, "is_veg": false },
+        { "name": "Chicken Sandwich", "price": 110, "is_veg": false }
+      ]
+    },
+    {
+      "category": "Burger",
+      "items": [
+        { "name": "Veg Burger", "price": 50, "is_veg": true },
+        { "name": "Cheese Burger", "price": 70, "is_veg": true },
+        { "name": "Paneer Burger", "price": 70, "is_veg": true },
+        { "name": "Sweet Corn Burger", "price": 60, "is_veg": true },
+        { "name": "Bingo Burger", "price": 70, "is_veg": true },
+        { "name": "Egg Burger", "price": 80, "is_veg": false },
+        { "name": "Burger 5911", "price": 90, "is_veg": true },
+        { "name": "Chicken Burger", "price": 100, "is_veg": false }
+      ]
+    },
+    {
+      "category": "Chinese Snacks",
+      "items": [
+        { "name": "Finger Chips", "price": 70, "is_veg": true },
+        { "name": "Veg Manchurian", "price": 90, "is_veg": true },
+        { "name": "Dry Manchurian", "price": 100, "is_veg": true },
+        { "name": "Cheese Manchurian", "price": 110, "is_veg": true },
+        { "name": "Mushroom Chilly", "price": 130, "is_veg": true },
+        { "name": "Egg Chilly", "price": 130, "is_veg": false },
+        { "name": "Cheese Chilly", "price": 130, "is_veg": true },
+        { "name": "Honey Chilly Potato", "price": 100, "is_veg": true },
+        { "name": "Cauliflower", "price": 100, "is_veg": true },
+        { "name": "Cheese Noodles", "price": 100, "is_veg": true },
+        { "name": "Hakka Noodles", "price": 90, "is_veg": true },
+        { "name": "Garlic Noodles", "price": 90, "is_veg": true },
+        { "name": "Veg Noodles", "price": 80, "is_veg": true },
+        { "name": "Egg Noodles", "price": 100, "is_veg": false },
+        { "name": "Cheese Finger", "price": 120, "is_veg": true },
+        { "name": "Chicken Noodles", "price": 130, "is_veg": false }
+      ]
+    },
+    {
+      "category": "Patty",
+      "items": [
+        { "name": "Veg Patty", "price": 30, "is_veg": true },
+        { "name": "Cheese Patty", "price": 40, "is_veg": true },
+        { "name": "Pizza Patty", "price": 50, "is_veg": true },
+        { "name": "Noodles Patty", "price": 50, "is_veg": true },
+        { "name": "Sweet Corn Patty", "price": 50, "is_veg": true },
+        { "name": "Tandoori Paneer Patty", "price": 50, "is_veg": true },
+        { "name": "Egg Patty", "price": 60, "is_veg": false },
+        { "name": "Pasta Patty", "price": 60, "is_veg": true },
+        { "name": "Chicken Patty", "price": 90, "is_veg": false }
+      ]
+    },
+    {
+      "category": "Non-Veg Rolls",
+      "items": [
+        { "name": "Single Egg Roll", "price": 50, "is_veg": false },
+        { "name": "Double Egg Roll", "price": 60, "is_veg": false },
+        { "name": "Triple Egg Roll", "price": 70, "is_veg": false },
+        { "name": "Chicken Roll", "price": 110, "is_veg": false },
+        { "name": "Chicken Keema Roll", "price": 120, "is_veg": false },
+        { "name": "Chilly Chicken Roll", "price": 120, "is_veg": false },
+        { "name": "Chicken Tikka Roll", "price": 120, "is_veg": false },
+        { "name": "Chicken Seekh Roll", "price": 110, "is_veg": false },
+        { "name": "Chicken Manchurian Roll", "price": 120, "is_veg": false }
+      ]
+    },
+    {
+      "category": "Rice",
+      "items": [
+        { "name": "Veg Fried Rice", "price": 80, "is_veg": true },
+        { "name": "Paneer Fried Rice", "price": 100, "is_veg": true },
+        { "name": "Egg Fried Rice", "price": 120, "is_veg": false },
+        { "name": "Channa Rice", "price": 80, "is_veg": true },
+        { "name": "Rajma Rice", "price": 80, "is_veg": true },
+        { "name": "Mushroom Fried Rice", "price": 100, "is_veg": true },
+        { "name": "Manchurian Rice", "price": 110, "is_veg": true },
+        { "name": "Veg Biryani", "price": 100, "is_veg": true },
+        { "name": "Chicken Biryani", "price": 140, "is_veg": false }
+      ]
+    },
+    {
+      "category": "Soya Chaap",
+      "items": [
+        { "name": "Fry Chaap", "price": 140, "is_veg": true },
+        { "name": "Chilly Chaap", "price": 140, "is_veg": true },
+        { "name": "Honey Chilli Chaap", "price": 140, "is_veg": true },
+        { "name": "Malai Chaap", "price": 150, "is_veg": true },
+        { "name": "Masala Chaap", "price": 150, "is_veg": true }
+      ]
+    }
+  ]
+}

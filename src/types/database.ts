@@ -17,6 +17,7 @@ export interface Item {
   category: string | null
   photo_url: string | null
   is_active: boolean
+  is_veg: boolean
   created_at: string
   updated_at: string
 }
@@ -53,6 +54,7 @@ export interface ItemStats {
   category: string | null
   photo_url: string | null
   is_active: boolean
+  is_veg: boolean
   rating_count: number
   avg_stars: number
   worth_it_count: number
