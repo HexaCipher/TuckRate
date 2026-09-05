@@ -169,6 +169,12 @@ Live status per `docs/6-Implementation-Plan.md`. One phase at a time.
 - **Login UI:** Completely rewrote `LoginPage.tsx` to interface with Clerk's `useSignIn` and `useSignUp` hooks. Removed the room number collection from the login flow per user request.
 - **Documentation:** Updated `docs/2-TRD.md`, `docs/5-Backend-Schema.md`, and `AGENTS.md` to reflect Clerk as the auth provider.
 
+**⚠ Pending manual steps before the Clerk migration works end-to-end:**
+1. **Apply the SQL** — paste `supabase/migrations/20260905000000_clerk_auth_migration.sql` into the Supabase SQL editor and run it. (⚠ Destructive: truncates `users`, `ratings`, `reports` — safe, test data only. It also recreates the rate-limit trigger and `admin_ban_user(text)`, so it subsumes those parts of `20260904000001_moderation.sql` if that migration hadn't been applied yet.) **Do not push/deploy until this is done** — the committed frontend sends Clerk text IDs that the pre-migration `uuid` columns would reject.
+2. **Configure Third-Party Auth in Supabase** — Dashboard → Authentication → Third-Party Auth: add Clerk with the project's issuer + JWKS URL so Supabase validates Clerk JWTs (per `docs/2-TRD.md`).
+3. **Env var** — ensure `VITE_CLERK_PUBLISHABLE_KEY` is set in `.env` locally and in Vercel env vars before the next deploy; the app throws at startup without it.
+
+
 ### Menu Data Seeding & Schema Update
 - **Schema & Migration (`supabase/migrations/20260904100000_add_is_veg.sql`):**
   - Added `is_veg boolean not null default true` column to `items` table.
