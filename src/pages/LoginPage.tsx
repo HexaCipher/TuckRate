@@ -30,6 +30,9 @@ function describeSendError(err: unknown): string {
   if (isClerkError(err, 'too_many_requests')) {
     return 'Too many codes requested. Wait a minute and try again.'
   }
+  if (isClerkError(err, 'captcha_invalid')) {
+    return "Security check failed. Disable any ad blockers or VPN, refresh the page, and try again."
+  }
   return "Couldn't send the code. Check your internet connection and try again."
 }
 
@@ -311,6 +314,14 @@ function EmailStep({
               )}
               <span>{isSending ? 'Sending code…' : 'Send 6-digit code →'}</span>
             </button>
+
+            {/* Clerk Bot Protection (Smart CAPTCHA) mount point.
+                Clerk injects its Cloudflare Turnstile widget into this div
+                when signUp.create() runs. Without it, Clerk falls back to
+                Invisible CAPTCHA, which can fail with `captcha_invalid` and
+                block all new sign-ups. Must be in the DOM while this step
+                is rendered — the sign-up attempt is fired from here. */}
+            <div id="clerk-captcha" className="flex justify-center mt-3" />
           </form>
         </div>
       </div>

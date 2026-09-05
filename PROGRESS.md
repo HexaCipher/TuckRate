@@ -175,6 +175,12 @@ Live status per `docs/6-Implementation-Plan.md`. One phase at a time.
 3. **Env var** — ensure `VITE_CLERK_PUBLISHABLE_KEY` is set in `.env` locally and in Vercel env vars before the next deploy; the app throws at startup without it.
 
 
+**Auth flow live test (this session):**
+- Automated Playwright test against the dev server found that **new sign-ups were impossible**: the Clerk instance has Bot Protection (Smart CAPTCHA / Turnstile) enabled, but the custom sign-up flow never rendered the required `#clerk-captcha` mount point, so every `signUp.create()` failed with `captcha_invalid` before any code email could be sent (the UI misleadingly showed "Couldn't send the code. Check your internet connection…").
+- **Fixed in `LoginPage.tsx`**: added the `<div id="clerk-captcha" />` mount point to the email step, and mapped the `captcha_invalid` Clerk error to a clear "Security check failed — disable ad blockers/VPN and retry" message.
+- Sign-in path verified working up to code-send: unknown email correctly falls back to sign-up (`form_identifier_not_found`), and existing accounts receive codes (sign-ins are not captcha-gated).
+- Full end-to-end OTP entry/verification can't be automated (Turnstile correctly blocks bot browsers) — needs one manual pass with a real browser + inbox. **Reminder: OTP codes are single-attempt and invalidated by every resend — always use the code from the LATEST email, and codes expire after 10 minutes.**
+
 ### Menu Data Seeding & Schema Update
 - **Schema & Migration (`supabase/migrations/20260904100000_add_is_veg.sql`):**
   - Added `is_veg boolean not null default true` column to `items` table.
