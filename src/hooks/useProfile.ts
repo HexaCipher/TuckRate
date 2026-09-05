@@ -5,8 +5,8 @@ import { useAuth } from '../lib/auth-context'
 
 /**
  * The signed-in user's public.users profile row (room_number, is_banned, is_admin).
- * The row is auto-created by the on_auth_user_created trigger at signup.
- * Used for the Profile screen now; is_admin gating (Admin view) arrives in Phase 5.
+ * The row is auto-created by useEnsureProfile on first Clerk sign-in.
+ * Used for the Profile screen and is_admin gating (Admin view).
  */
 export function useProfile() {
   const { user } = useAuth()

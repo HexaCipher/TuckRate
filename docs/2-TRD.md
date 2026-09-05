@@ -24,24 +24,23 @@ This TRD is written for a **solo hobby-project build**, intended to be executed 
 
 ## 2. Backend Stack
 
-**Choice: Supabase** (Postgres + Auth + Storage + auto-generated APIs, all managed/hosted)
+**Choice: Supabase** (Postgres + Storage + auto-generated APIs) **+ Clerk** (authentication)
 
-| Need | Supabase component |
+| Need | Component |
 |---|---|
-| Database | Managed Postgres |
-| Authentication | Supabase Auth — email OTP / magic link, built-in, passwordless |
+| Database | Supabase Managed Postgres |
+| Authentication | **Clerk (Pro plan)** — email verification code, passwordless. Supabase validates Clerk JWTs via native Third-Party Auth integration (not the deprecated shared-JWT-secret method). |
 | File storage | Supabase Storage (for student-uploaded food photos) |
 | API layer | Auto-generated REST (PostgREST) + realtime subscriptions, accessed via `@supabase/supabase-js` client SDK |
-| Authorization | Postgres Row Level Security (RLS) policies |
+| Authorization | Postgres Row Level Security (RLS) policies, using `auth.jwt() ->> 'sub'` to identify the Clerk user |
 
-**Why Supabase over a custom Node/Express backend:**
-- No custom backend server to write, host, or maintain — critical for a hobby project with limited time.
-- Built-in passwordless email OTP auth matches the exact auth requirement from the PRD (any email, no password, low friction).
-- Row Level Security lets you enforce "users can only edit their own rating" directly in the database, rather than writing custom authorization middleware.
-- Free tier is more than sufficient for hostel-scale usage (a few hundred users).
-- Very agent-friendly: Claude Code can scaffold Supabase schema + client calls quickly since it's a well-documented, widely-used pattern.
+**Why Supabase (database) + Clerk (auth):**
+- Clerk provides a polished passwordless email-code login with built-in rate limiting, email delivery, and account management — no custom OTP infrastructure needed.
+- Supabase's native Third-Party Auth integration validates Clerk-signed JWTs directly, so RLS policies still secure every query without a custom backend.
+- Row Level Security enforces "users can only edit their own rating" directly in the database.
+- Free/Pro tiers of both services are more than sufficient for hostel-scale usage.
 
-**If you outgrow Supabase later** (multi-vendor, owner dashboards, heavier custom logic), Supabase Edge Functions (Deno-based serverless functions) can be added incrementally without a full backend rewrite.
+**If you outgrow this setup later** (multi-vendor, owner dashboards, heavier custom logic), Supabase Edge Functions can be added incrementally.
 
 ---
 
@@ -55,11 +54,13 @@ This TRD is written for a **solo hobby-project build**, intended to be executed 
 
 ## 4. Authentication
 
-- **Method:** Email OTP / magic link via Supabase Auth — no passwords stored or managed.
-- **Flow:** User enters any email → receives a 6-digit OTP or magic link → verified → session issued (JWT, handled automatically by Supabase client SDK).
-- **Identity fields collected at signup:** email (required), room number (optional, self-declared, unverified — social/trust signal only, not used for access control).
+- **Provider:** Clerk (Pro plan) — email verification code, passwordless. No passwords stored or managed.
+- **Flow:** User enters any email → receives a 6-digit code from Clerk → verified → Clerk session established → Clerk-signed JWT sent to Supabase on every request via the `accessToken` callback.
+- **Identity fields collected at signup:** email only (required). Room number field was removed.
 - **No college-domain restriction** — any email is accepted, per product decision (see PRD).
-- **Session handling:** Supabase client SDK manages JWT storage and refresh automatically (uses secure local storage under the hood); no custom session logic needed.
+- **Session handling:** Clerk's React SDK (`@clerk/clerk-react`) manages session tokens and refresh. The Supabase client receives the token via its `accessToken` option — no `supabase.auth.getSession()` calls.
+- **User ID format:** Clerk IDs are text strings like `user_2abc123...`, not UUIDs. The `users.id` column is `text`, and RLS policies use `(select auth.jwt() ->> 'sub')` instead of `auth.uid()`.
+- **Profile provisioning:** On first sign-in, a `useEnsureProfile` hook inserts the user's row into `public.users` (client-side, gated by RLS insert policy). This replaces the old `on_auth_user_created` trigger.
 
 ---
 
@@ -73,22 +74,24 @@ This TRD is written for a **solo hobby-project build**, intended to be executed 
 ## 6. Architecture
 
 ```
-┌─────────────────────────┐
-│   React + Vite PWA      │  (installed on student phones)
-│  - Home / browse         │
-│  - Item detail            │
-│  - Rate/review form       │
-│  - Auth (OTP)              │
-└───────────┬──────────────┘
-            │  supabase-js client SDK (HTTPS)
-            ▼
-┌─────────────────────────┐
-│        Supabase          │
-│  - Auth (email OTP)       │
-│  - Postgres DB + RLS      │
-│  - Storage (food photos)  │
-│  - Auto REST API          │
-└─────────────────────────┘
+┌──────────────────────────────┐
+│   React + Vite PWA           │  (installed on student phones)
+│  - Home / browse              │
+│  - Item detail                │
+│  - Rate/review form           │
+│  - Auth UI (Clerk email code) │
+└──────┬───────────┬───────────┘
+       │           │
+       │ Clerk SDK │ supabase-js (accessToken callback)
+       ▼           ▼
+┌────────────┐  ┌──────────────────────────┐
+│   Clerk    │  │        Supabase           │
+│  - Email   │  │  - Postgres DB + RLS      │
+│    code    │  │  - Storage (food photos)  │
+│  - Session │  │  - Auto REST API          │
+│    mgmt    │  │  - Third-Party Auth       │
+│            │  │    (validates Clerk JWTs)  │
+└────────────┘  └──────────────────────────┘
 ```
 
 - **No custom backend server** in the MVP architecture — the frontend talks directly to Supabase, secured by RLS policies (not by trusting the client).
@@ -112,7 +115,7 @@ This TRD is written for a **solo hobby-project build**, intended to be executed 
 ## 8. Security Requirements
 
 - **Row Level Security (RLS) enabled on all tables** — never rely on frontend logic alone to restrict access.
-  - Users can `insert`/`update` only their own rows in `ratings` (matched on `auth.uid()`).
+  - Users can `insert`/`update` only their own rows in `ratings` (matched on `(select auth.jwt() ->> 'sub')`).
   - Everyone (including anonymous/unauthenticated) can `select` from `items` and `ratings` (public read).
   - Only admin role can `update`/`delete` rows in `reports`, or moderate/remove ratings.
 - **Rate limiting:** basic submission rate-limiting (e.g. via a Postgres trigger or Edge Function check) to block rapid repeat submissions from one account.
@@ -127,9 +130,9 @@ This TRD is written for a **solo hobby-project build**, intended to be executed 
 | Decision | Reason |
 |---|---|
 | Vite + React over Next.js | Simpler PWA setup, no SSR needed for a closed-audience install app |
-| Supabase over custom Node backend | Eliminates backend hosting/maintenance; built-in OTP auth matches exact product requirement; RLS gives real security without custom middleware |
+| Supabase (DB) + Clerk (auth) | Supabase handles data/storage/RLS; Clerk handles identity with polished email-code auth. Native Third-Party Auth integration validates Clerk JWTs in Supabase without a custom backend. |
 | Postgres (via Supabase) | Relational data (users ↔ ratings ↔ items) fits relational model naturally; strong constraint support (unique keys, foreign keys) |
-| Email OTP over college-email-restricted signup | Matches product decision to not exclude students without institutional email |
+| Clerk email code over college-email-restricted signup | Matches product decision to not exclude students without institutional email; Clerk handles delivery/rate-limiting |
 | PWA over native app | No app store friction, installable directly, appropriate scope/effort for a hobby project |
 | TanStack Query for data fetching | Clean handling of loading/error/empty states, which the App Flow doc requires to be explicit for every screen |
 | No custom backend server at MVP | Minimizes what a solo developer (with an AI coding agent) has to build and maintain; add Edge Functions only when a real need arises |

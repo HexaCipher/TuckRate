@@ -1,8 +1,17 @@
 import { createContext, useContext } from 'react'
-import type { User as SupabaseUser } from '@supabase/supabase-js'
 
-interface AuthContextValue {
-  user: SupabaseUser | null
+/**
+ * Minimal user shape exposed to the rest of the app. Maps to both
+ * the old SupabaseUser contract (user.id, user.email) and the new
+ * Clerk contract (userId, primaryEmailAddress).
+ */
+export interface AuthUser {
+  id: string
+  email: string | undefined
+}
+
+export interface AuthContextValue {
+  user: AuthUser | null
   signOut: () => Promise<void>
 }
 
@@ -15,4 +24,3 @@ export function useAuth(): AuthContextValue {
 }
 
 export { AuthContext }
-export type { AuthContextValue }

@@ -20,8 +20,9 @@ Full specs live in `/docs`. Read the relevant doc before building in that area �
 - Data fetching/cache: TanStack Query
 - Forms: React Hook Form
 - Icons: Tabler Icons
-- Backend: Supabase — Postgres + Auth (email OTP) + Storage. No custom backend server.
-- Deployment: Vercel (frontend) + Supabase Cloud (backend)
+- Backend: Supabase — Postgres + Storage. No custom backend server.
+- Auth: Clerk (Pro plan) — email verification code, passwordless. Supabase validates Clerk JWTs via native Third-Party Auth integration (not the deprecated shared-JWT-secret method).
+- Deployment: Vercel (frontend) + Supabase Cloud (backend) + Clerk Cloud (auth)
 
 ## Absolute rules
 1. **MVP scope only.** Nothing outside `docs/1-PRD.md`'s "Must-have (MVP)" list unless the user explicitly asks for it in that session. Good ideas that come up mid-build go in `PROGRESS.md` under "Ideas not in scope" — not into the code.
@@ -29,7 +30,7 @@ Full specs live in `/docs`. Read the relevant doc before building in that area �
 3. **One rating per `(user_id, item_id)`** — enforced by a database unique constraint, not just app-level logic.
 4. **Mobile-first only.** Target viewport 360–430px. No desktop-specific layout work for any v1 screen.
 5. **Dark theme is the only theme for v1.** Use the exact palette and component styles in `docs/4-UIUX-Brief.md` — don't invent new colors or styles.
-6. **Any-email + OTP auth only.** No college-email domain restriction, no password-based auth.
+6. **Any-email + email-code auth only (via Clerk).** No college-email domain restriction, no password-based auth.
 7. **Every screen must implement all four states** defined for it in `docs/3-App-Flow.md`: success, loading, empty, error. A screen isn't done until all four exist and have been checked.
 8. **One phase at a time**, per `docs/6-Implementation-Plan.md`. Don't jump ahead to a later phase or silently merge two phases in one session.
 9. **Don't mark a phase "Complete" in `PROGRESS.md`** until it's actually been tested against the relevant states in `docs/3-App-Flow.md` — not just "looks right."
@@ -51,7 +52,7 @@ At the start of every session:
 - Push notifications
 - Native app — PWA only
 
-WorthIt: a PWA for rating hostel tuck-shop food. Vite + React 19 + TypeScript SPA backed by Supabase, deployed to Vercel.
+WorthIt: a PWA for rating hostel tuck-shop food. Vite + React 19 + TypeScript SPA backed by Supabase (data) + Clerk (auth), deployed to Vercel.
 
 ## Commands
 
@@ -62,13 +63,14 @@ WorthIt: a PWA for rating hostel tuck-shop food. Vite + React 19 + TypeScript SP
 
 ## Environment
 
-- Requires `.env` with `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` (see `.env.example`). Without it the app still boots but logs a console warning and data features fail — check for `[WorthIt] Missing Supabase environment variables` when debugging.
+- Requires `.env` with `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, and `VITE_CLERK_PUBLISHABLE_KEY` (see `.env.example`). Without Supabase vars the app logs `[WorthIt] Missing Supabase environment variables` and data features fail. Without the Clerk key the app throws at startup.
 
 ## Architecture
 
-- Entry: `src/main.tsx` → `src/App.tsx` (all routes defined inline there).
-- Backend is entirely Supabase (auth via email OTP, Postgres with RLS, REST). Client singleton in `src/lib/supabase.ts`; use `isSupabaseConfigured` before data calls.
-- DB schema types in `src/types/database.ts` are maintained by hand to mirror `docs/5-Backend-Schema.md` — update them whenever the schema changes.
+- Entry: `src/main.tsx` → `src/App.tsx` (all routes defined inline there). `ClerkProvider` wraps the app in `main.tsx`; `AuthProvider` in `src/lib/auth.tsx` bridges Clerk hooks to the app-wide `useAuth()` context.
+- Auth is handled by **Clerk** (`@clerk/clerk-react`). The Supabase client (`src/lib/supabase.ts`) receives the Clerk session token via the `accessToken` callback. RLS policies use `(select auth.jwt() ->> 'sub')` to identify the Clerk user (text ID like `user_2abc...`, NOT a UUID). `auth.uid()` is NOT used anywhere.
+- Profile provisioning: `src/hooks/useEnsureProfile.ts` inserts a `public.users` row on first sign-in (replaces the old `on_auth_user_created` trigger which only worked with Supabase Auth).
+- DB schema types in `src/types/database.ts` are maintained by hand to mirror `docs/5-Backend-Schema.md` — `users.id`, `ratings.user_id`, and `reports.reported_by` are `text` (Clerk IDs).
 - Schema SQL lives in `supabase/migrations/*.sql` and `supabase/seed.sql`. The Supabase **GitHub integration is not used** (it aborted with "Remote migration versions not found in local migrations directory"). Apply schema changes via the **Supabase MCP `apply_migration` tool** (records migration history) or the SQL editor, then write the same SQL into a `supabase/migrations/` file — these files are only a record, nothing applies them automatically, so they drift if you skip that step.
 - This Supabase project is **recycled from an unrelated student/department app**; migration history versions `20260316*` belong to it, not WorthIt. Its orphaned functions were dropped in `20260827135721`. Don't be confused by that history, and don't assume the remote DB started clean.
 - Tailwind CSS v4 uses CSS-first config: theme tokens/colors live in `src/index.css` under `@theme`. There is no `tailwind.config.js`.

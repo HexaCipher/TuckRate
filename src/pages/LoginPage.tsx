@@ -1,34 +1,33 @@
 import { useEffect, useRef, useState } from 'react'
-import { useForm, useWatch } from 'react-hook-form'
 import { useLocation, useNavigate } from 'react-router-dom'
-import type { AuthError } from '@supabase/supabase-js'
+import { useSignIn, useSignUp } from '@clerk/clerk-react'
 import {
   IconLoader2,
   IconArrowLeft,
   IconMail,
-  IconHome,
   IconCheck,
   IconX,
   IconSparkles,
 } from '@tabler/icons-react'
-import { supabase, isSupabaseConfigured } from '../lib/supabase'
-
-interface EmailFormValues {
-  email: string
-  room_number: string
-}
+import { useAuth } from '../lib/auth-context'
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const RESEND_COOLDOWN_SECONDS = 30
 
-/** Map a signInWithOtp failure to friendly copy */
-function describeSendError(error: AuthError): string {
-  const msg = error.message.toLowerCase()
-  if (
-    error.code === 'over_email_send_rate_limit' ||
-    error.code === 'over_request_rate_limit' ||
-    msg.includes('rate limit')
-  ) {
+type AuthFlow = 'sign_in' | 'sign_up'
+
+/** Check if a Clerk error has a specific error code */
+function isClerkError(err: unknown, code: string): boolean {
+  if (err && typeof err === 'object' && 'errors' in err) {
+    const clerkErr = err as { errors: Array<{ code: string }> }
+    return clerkErr.errors?.some((e) => e.code === code) ?? false
+  }
+  return false
+}
+
+/** Map a Clerk send-code error to friendly copy */
+function describeSendError(err: unknown): string {
+  if (isClerkError(err, 'too_many_requests')) {
     return 'Too many codes requested. Wait a minute and try again.'
   }
   return "Couldn't send the code. Check your internet connection and try again."
@@ -56,7 +55,7 @@ function formatCooldown(seconds: number): string {
 }
 
 /* ────────────────────────────────────────────────────────────
- * 6-Box OTP Input Component
+ * 6-Box OTP Input Component (unchanged from original)
  * ──────────────────────────────────────────────────────────── */
 interface OtpInputProps {
   value: string
@@ -71,7 +70,6 @@ function OtpInput({ value, onChange, onComplete, disabled, hasError }: OtpInputP
   const digits = Array.from({ length: 6 }, (_, i) => value[i] || '')
 
   useEffect(() => {
-    // Focus first box on mount
     inputRefs.current[0]?.focus()
   }, [])
 
@@ -94,7 +92,6 @@ function OtpInput({ value, onChange, onComplete, disabled, hasError }: OtpInputP
   function handleKeyDown(index: number, e: React.KeyboardEvent<HTMLInputElement>) {
     if (e.key === 'Backspace') {
       if (!digits[index] && index > 0) {
-        // Move to previous and clear
         const nextDigits = [...digits]
         nextDigits[index - 1] = ''
         onChange(nextDigits.join(''))
@@ -164,46 +161,56 @@ function OtpInput({ value, onChange, onComplete, disabled, hasError }: OtpInputP
 }
 
 /* ────────────────────────────────────────────────────────────
- * Step 1: Email & Optional Room Number
+ * Step 1: Email Entry
  * ──────────────────────────────────────────────────────────── */
 function EmailStep({
   initialEmail,
-  initialRoom,
   onCodeSent,
   onBack,
 }: {
   initialEmail: string
-  initialRoom: string
-  onCodeSent: (email: string, roomNumber: string) => void
+  onCodeSent: (email: string, flow: AuthFlow) => void
   onBack: () => void
 }) {
+  const { signIn, isLoaded: isSignInLoaded } = useSignIn()
+  const { signUp, isLoaded: isSignUpLoaded } = useSignUp()
+
+  const [email, setEmail] = useState(initialEmail)
   const [sendError, setSendError] = useState<string | null>(null)
-  const {
-    register,
-    handleSubmit,
-    control,
-    setValue,
-    formState: { errors, isSubmitting },
-  } = useForm<EmailFormValues>({
-    mode: 'onTouched',
-    defaultValues: { email: initialEmail, room_number: initialRoom },
-  })
+  const [isSending, setIsSending] = useState(false)
 
-  const emailValue = useWatch({ control, name: 'email', defaultValue: initialEmail })
-  const emailLooksValid = EMAIL_PATTERN.test((emailValue ?? '').trim())
+  const emailTrimmed = email.trim()
+  const emailLooksValid = EMAIL_PATTERN.test(emailTrimmed)
+  const isLoaded = isSignInLoaded && isSignUpLoaded
 
-  const onSubmit = handleSubmit(async (values) => {
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    if (!emailLooksValid || !isLoaded || !signIn || !signUp) return
+
+    setIsSending(true)
     setSendError(null)
-    const { error } = await supabase.auth.signInWithOtp({
-      email: values.email,
-      options: { shouldCreateUser: true },
-    })
-    if (error) {
-      setSendError(describeSendError(error))
-      return
+
+    try {
+      // Try sign-in first (existing user)
+      await signIn.create({ strategy: 'email_code', identifier: emailTrimmed })
+      onCodeSent(emailTrimmed, 'sign_in')
+    } catch (err) {
+      if (isClerkError(err, 'form_identifier_not_found')) {
+        // User doesn't exist → sign-up flow
+        try {
+          await signUp.create({ emailAddress: emailTrimmed })
+          await signUp.prepareEmailAddressVerification({ strategy: 'email_code' })
+          onCodeSent(emailTrimmed, 'sign_up')
+        } catch (signUpErr) {
+          setSendError(describeSendError(signUpErr))
+        }
+      } else {
+        setSendError(describeSendError(err))
+      }
+    } finally {
+      setIsSending(false)
     }
-    onCodeSent(values.email, values.room_number.trim())
-  })
+  }
 
   return (
     <div className="w-full max-w-md mx-auto min-h-dvh flex flex-col justify-between px-4 sm:px-6 py-4">
@@ -239,7 +246,7 @@ function EmailStep({
 
         {/* Form Card */}
         <div className="rounded-3xl bg-card border border-border-subtle shadow-warm-md p-5 sm:p-7">
-          <form onSubmit={onSubmit} noValidate className="space-y-5">
+          <form onSubmit={handleSubmit} noValidate className="space-y-5">
             {/* Email Field */}
             <div className="space-y-1.5">
               <label
@@ -260,22 +267,12 @@ function EmailStep({
                   inputMode="email"
                   autoComplete="email"
                   placeholder="you@college.edu"
-                  className={`h-12 w-full rounded-xl bg-elevated/30 border pl-10 pr-10 text-base text-primary placeholder:text-muted transition-all outline-none focus:bg-card focus:border-accent focus:ring-2 focus:ring-accent/20 ${
-                    errors.email
-                      ? 'border-bad bg-bad-bg/20'
-                      : 'border-border-default'
-                  }`}
-                  {...register('email', {
-                    required: 'Please enter your email',
-                    pattern: {
-                      value: EMAIL_PATTERN,
-                      message: 'Please enter a valid email address',
-                    },
-                    setValueAs: (v: string) => v.trim(),
-                  })}
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className={`h-12 w-full rounded-xl bg-elevated/30 border pl-10 pr-10 text-base text-primary placeholder:text-muted transition-all outline-none focus:bg-card focus:border-accent focus:ring-2 focus:ring-accent/20 border-border-default`}
                 />
                 {/* Trailing indicator / Clear action */}
-                {emailValue && (
+                {email && (
                   <div className="absolute right-3 flex items-center">
                     {emailLooksValid ? (
                       <span className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center">
@@ -284,7 +281,7 @@ function EmailStep({
                     ) : (
                       <button
                         type="button"
-                        onClick={() => setValue('email', '')}
+                        onClick={() => setEmail('')}
                         aria-label="Clear email"
                         className="text-muted hover:text-primary transition-colors cursor-pointer"
                       >
@@ -294,42 +291,6 @@ function EmailStep({
                   </div>
                 )}
               </div>
-              {errors.email && (
-                <p className="text-xs text-bad mt-1 font-medium">
-                  {errors.email.message}
-                </p>
-              )}
-            </div>
-
-            {/* Room Number Field (Optional) */}
-            <div className="space-y-1.5">
-              <div className="flex items-baseline justify-between">
-                <label
-                  htmlFor="room_number"
-                  className="block text-xs font-bold text-secondary uppercase tracking-wider"
-                >
-                  Room number <span className="text-muted font-normal lowercase">(optional)</span>
-                </label>
-              </div>
-              <div className="relative flex items-center">
-                <IconHome
-                  size={18}
-                  stroke={1.8}
-                  className="absolute left-3.5 text-muted pointer-events-none"
-                />
-                <input
-                  id="room_number"
-                  type="text"
-                  maxLength={16}
-                  autoComplete="off"
-                  placeholder="e.g. B-214"
-                  className="h-12 w-full rounded-xl bg-elevated/30 border border-border-default pl-10 pr-4 text-base text-primary placeholder:text-muted transition-all outline-none focus:bg-card focus:border-accent focus:ring-2 focus:ring-accent/20"
-                  {...register('room_number')}
-                />
-              </div>
-              <p className="text-xs text-muted leading-relaxed">
-                Helps us show relevant reviews from your hostel.
-              </p>
             </div>
 
             {/* Error Message */}
@@ -342,13 +303,13 @@ function EmailStep({
             {/* Primary Action */}
             <button
               type="submit"
-              disabled={!emailLooksValid || isSubmitting}
+              disabled={!emailLooksValid || isSending || !isLoaded}
               className="mt-2 h-12 w-full rounded-full bg-accent text-card text-sm font-semibold shadow-warm active:bg-accent-hover active:scale-[0.99] transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isSubmitting && (
+              {isSending && (
                 <IconLoader2 size={18} className="animate-spin text-card" />
               )}
-              <span>{isSubmitting ? 'Sending code…' : 'Send 6-digit code →'}</span>
+              <span>{isSending ? 'Sending code…' : 'Send 6-digit code →'}</span>
             </button>
           </form>
         </div>
@@ -370,15 +331,18 @@ function EmailStep({
  * ──────────────────────────────────────────────────────────── */
 function CodeStep({
   email,
-  roomNumber,
+  flow,
   onVerified,
   onBackToEmail,
 }: {
   email: string
-  roomNumber: string
+  flow: AuthFlow
   onVerified: () => void
   onBackToEmail: () => void
 }) {
+  const { signIn, isLoaded: isSignInLoaded, setActive: setSignInActive } = useSignIn()
+  const { signUp, isLoaded: isSignUpLoaded, setActive: setSignUpActive } = useSignUp()
+
   const [code, setCode] = useState('')
   const [verifyError, setVerifyError] = useState<string | null>(null)
   const [codeExpired, setCodeExpired] = useState(false)
@@ -387,59 +351,66 @@ function CodeStep({
   const [resendError, setResendError] = useState<string | null>(null)
   const cooldown = useResendCooldown(RESEND_COOLDOWN_SECONDS)
 
+  const isLoaded = isSignInLoaded && isSignUpLoaded
+
   async function verify(tokenToVerify = code) {
-    if (tokenToVerify.length !== 6 || verifying) return
+    if (tokenToVerify.length !== 6 || verifying || !isLoaded) return
     setVerifying(true)
     setVerifyError(null)
     setCodeExpired(false)
+
     try {
-      const { data, error } = await supabase.auth.verifyOtp({
-        email,
-        token: tokenToVerify,
-        type: 'email',
-      })
-      if (error) {
-        const expired =
-          error.code === 'otp_expired' || error.message.toLowerCase().includes('expired')
-        if (expired) {
-          setCodeExpired(true)
-        } else {
-          setVerifyError("That code doesn't look right. Please try again.")
+      if (flow === 'sign_in' && signIn) {
+        const result = await signIn.attemptFirstFactor({
+          strategy: 'email_code',
+          code: tokenToVerify,
+        })
+        if (result.status === 'complete') {
+          await setSignInActive!({ session: result.createdSessionId })
+          onVerified()
+          return
         }
-        setCode('')
-        return
-      }
-
-      if (data.user && roomNumber) {
-        const { error: roomError } = await supabase
-          .from('users')
-          .update({ room_number: roomNumber })
-          .eq('id', data.user.id)
-        if (roomError) {
-          console.warn('[WorthIt] Could not save room number:', roomError.message)
+      } else if (flow === 'sign_up' && signUp) {
+        const result = await signUp.attemptEmailAddressVerification({
+          code: tokenToVerify,
+        })
+        if (result.status === 'complete') {
+          await setSignUpActive!({ session: result.createdSessionId })
+          onVerified()
+          return
         }
       }
-
-      onVerified()
+    } catch (err) {
+      if (isClerkError(err, 'verification_expired') || isClerkError(err, 'verification_failed')) {
+        setCodeExpired(true)
+      } else if (isClerkError(err, 'form_code_incorrect')) {
+        setVerifyError("That code doesn't look right. Please try again.")
+      } else {
+        setVerifyError("Couldn't verify the code. Try again.")
+      }
+      setCode('')
     } finally {
       setVerifying(false)
     }
   }
 
   async function resend() {
-    if (cooldown.remaining > 0 || resending) return
+    if (cooldown.remaining > 0 || resending || !isLoaded) return
     setResending(true)
     setResendError(null)
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
-      options: { shouldCreateUser: true },
-    })
-    setResending(false)
-    if (error) {
-      setResendError(describeSendError(error))
-      return
+
+    try {
+      if (flow === 'sign_in' && signIn) {
+        await signIn.create({ strategy: 'email_code', identifier: email })
+      } else if (flow === 'sign_up' && signUp) {
+        await signUp.prepareEmailAddressVerification({ strategy: 'email_code' })
+      }
+      cooldown.start()
+    } catch (err) {
+      setResendError(describeSendError(err))
+    } finally {
+      setResending(false)
     }
-    cooldown.start()
   }
 
   const showError = codeExpired || verifyError !== null
@@ -604,9 +575,10 @@ function SuccessStep({ onDone }: { onDone: () => void }) {
 function LoginPage() {
   const location = useLocation()
   const navigate = useNavigate()
+  const { user } = useAuth()
   const [step, setStep] = useState<'email' | 'code' | 'success'>('email')
   const [email, setEmail] = useState('')
-  const [roomNumber, setRoomNumber] = useState('')
+  const [authFlow, setAuthFlow] = useState<AuthFlow>('sign_in')
 
   // Redirect target: screen that triggered login, else Home
   const from = (() => {
@@ -618,6 +590,13 @@ function LoginPage() {
       ? path
       : '/'
   })()
+
+  // If already signed in, redirect immediately
+  useEffect(() => {
+    if (user) {
+      navigate(from, { replace: true })
+    }
+  }, [user, from, navigate])
 
   const handleBack = () => {
     if (typeof window !== 'undefined' && window.history.state?.idx > 0) {
@@ -641,42 +620,13 @@ function LoginPage() {
     }
   }
 
-  if (!isSupabaseConfigured) {
-    return (
-      <div className="w-full max-w-md mx-auto min-h-dvh flex flex-col bg-app text-primary">
-        <header className="flex items-center px-4 h-14 shrink-0">
-          <button
-            type="button"
-            onClick={handleBack}
-            aria-label="Go back"
-            className="w-10 h-10 -ml-1.5 flex items-center justify-center rounded-full bg-card border border-border-subtle shadow-warm text-secondary hover:text-primary active:scale-95 transition-all cursor-pointer"
-          >
-            <IconArrowLeft size={20} stroke={2} />
-          </button>
-        </header>
-        <div className="flex-1 flex flex-col items-center justify-center px-6 text-center -mt-14">
-          <img
-            src="/wordmark.png"
-            alt="WorthIt"
-            className="h-7 w-auto object-contain select-none mb-3"
-            draggable={false}
-          />
-          <p className="text-sm text-secondary max-w-[280px]">
-            The app isn&apos;t connected to its backend yet, so logging in is disabled.
-          </p>
-        </div>
-      </div>
-    )
-  }
-
   if (step === 'email') {
     return (
       <EmailStep
         initialEmail={email}
-        initialRoom={roomNumber}
-        onCodeSent={(sentEmail, room) => {
+        onCodeSent={(sentEmail, flow) => {
           setEmail(sentEmail)
-          setRoomNumber(room)
+          setAuthFlow(flow)
           setStep('code')
         }}
         onBack={handleBack}
@@ -688,7 +638,7 @@ function LoginPage() {
     return (
       <CodeStep
         email={email}
-        roomNumber={roomNumber}
+        flow={authFlow}
         onVerified={() => setStep('success')}
         onBackToEmail={() => setStep('email')}
       />

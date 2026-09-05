@@ -1,69 +1,52 @@
-import { useCallback, useEffect, useState, type ReactNode } from 'react'
-import type { User as SupabaseUser } from '@supabase/supabase-js'
+import { useCallback, useEffect, type ReactNode } from 'react'
+import {
+  useAuth as useClerkAuth,
+  useUser as useClerkUser,
+} from '@clerk/clerk-react'
 import { IconLoader2 } from '@tabler/icons-react'
-import { supabase } from './supabase'
+import { setClerkTokenGetter } from './supabase'
 import { AuthContext } from './auth-context'
+import { useEnsureProfile } from '../hooks/useEnsureProfile'
 
 /**
- * Global auth state.
- * - On load: silent session check (docs/3-App-Flow.md §1 splash) while a simple
- *   spinner shows. Session persistence/refresh itself is handled by supabase-js
- *   (localStorage), so a refresh keeps the user logged in.
- * - onAuthStateChange keeps React state in sync for sign-in/out/refresh events.
+ * Auth provider powered by Clerk.
+ *
+ * Responsibilities:
+ * 1. Bridges the Clerk session token to the Supabase client via setClerkTokenGetter.
+ * 2. Ensures a public.users row exists for the Clerk user (replaces the old trigger).
+ * 3. Exposes the same AuthContext shape ({user, signOut}) that all consumers expect.
+ * 4. Shows splash loading / error states per docs/3-App-Flow.md §1.
  */
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<SupabaseUser | null>(null)
-  const [initializing, setInitializing] = useState(true)
-  const [initFailed, setInitFailed] = useState(false)
-  const [attempt, setAttempt] = useState(0)
+  const {
+    isLoaded,
+    isSignedIn,
+    userId,
+    getToken,
+    signOut: clerkSignOut,
+  } = useClerkAuth()
 
+  const { user: clerkUser } = useClerkUser()
+
+  // Bridge Clerk token → Supabase client
   useEffect(() => {
-    let cancelled = false
-
-    async function checkSession() {
-      try {
-        const { data, error } = await supabase.auth.getSession()
-        if (error) throw error
-        if (!cancelled) {
-          setUser(data.session?.user ?? null)
-          setInitializing(false)
-        }
-      } catch {
-        if (!cancelled) {
-          setInitFailed(true)
-          setInitializing(false)
-        }
-      }
+    if (isSignedIn) {
+      setClerkTokenGetter(() => getToken())
+    } else {
+      setClerkTokenGetter(null)
     }
+    return () => setClerkTokenGetter(null)
+  }, [isSignedIn, getToken])
 
-    checkSession()
-
-    // Keep state in sync (SIGNED_IN / SIGNED_OUT / TOKEN_REFRESHED / USER_UPDATED).
-    // Callback stays light (setState only) — supabase-js warns about deadlocks otherwise.
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null)
-    })
-
-    return () => {
-      cancelled = true
-      subscription.unsubscribe()
-    }
-  }, [attempt])
+  // Ensure public.users row exists for this Clerk user
+  useEnsureProfile(isSignedIn ? userId : null)
 
   const signOut = useCallback(async () => {
-    await supabase.auth.signOut()
-  }, [])
+    await clerkSignOut()
+  }, [clerkSignOut])
 
-  const retryInit = useCallback(() => {
-    setInitFailed(false)
-    setInitializing(true)
-    setAttempt((n) => n + 1)
-  }, [])
-
-  // Splash loading state (docs/3-App-Flow.md §1): simple centered spinner
-  if (initializing) {
+  // Splash loading state (docs/3-App-Flow.md §1)
+  if (!isLoaded) {
     return (
       <div className="min-h-dvh flex items-center justify-center">
         <IconLoader2 size={28} className="animate-spin text-secondary" />
@@ -71,23 +54,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     )
   }
 
-  // Splash error state (docs/3-App-Flow.md §1): never block indefinitely
-  if (initFailed) {
-    return (
-      <div className="min-h-dvh flex flex-col items-center justify-center px-6 text-center">
-        <p className="text-sm text-secondary mb-4">
-          Couldn&apos;t connect. Check your internet and retry.
-        </p>
-        <button
-          type="button"
-          onClick={retryInit}
-          className="h-12 px-6 rounded-full bg-accent text-accent-dark text-sm font-medium active:bg-accent-hover"
-        >
-          Retry
-        </button>
-      </div>
-    )
-  }
+  // Map Clerk user to the app's AuthUser shape
+  const user = isSignedIn && userId
+    ? {
+        id: userId,
+        email: clerkUser?.primaryEmailAddress?.emailAddress,
+      }
+    : null
 
-  return <AuthContext.Provider value={{ user, signOut }}>{children}</AuthContext.Provider>
+  return (
+    <AuthContext.Provider value={{ user, signOut }}>
+      {children}
+    </AuthContext.Provider>
+  )
 }

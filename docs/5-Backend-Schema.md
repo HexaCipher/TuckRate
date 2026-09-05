@@ -8,11 +8,11 @@
 ## 1. Tables
 
 ### `users`
-Supabase Auth manages the core `auth.users` table (email, hashed session tokens, etc.) automatically. This app-specific `public.users` table extends it with profile data via a 1:1 relationship on `id`.
+Clerk handles authentication and user identity. This `public.users` table stores app-specific profile data, keyed by the Clerk user ID (a text string like `user_2abc123...`). The row is created client-side on first sign-in via `useEnsureProfile`.
 
 | Column | Type | Constraints | Notes |
 |---|---|---|---|
-| `id` | `uuid` | PK, references `auth.users(id)` on delete cascade | Matches Supabase Auth user id |
+| `id` | `text` | PK | Clerk user ID (e.g. `user_2abc123...`) — not a UUID, no FK to `auth.users` |
 | `room_number` | `text` | nullable | Self-declared, optional, unverified — trust signal only |
 | `is_banned` | `boolean` | not null, default `false` | Set by admin via moderation actions |
 | `is_admin` | `boolean` | not null, default `false` | Manually set for the app owner's account only |
@@ -40,7 +40,7 @@ The core content table — one row per (user, item) rating.
 | Column | Type | Constraints | Notes |
 |---|---|---|---|
 | `id` | `uuid` | PK, default `gen_random_uuid()` | |
-| `user_id` | `uuid` | FK → `users(id)`, not null | Owner of the rating |
+| `user_id` | `text` | FK → `users(id)`, not null | Owner of the rating (Clerk user ID) |
 | `item_id` | `uuid` | FK → `items(id)`, not null | |
 | `stars` | `smallint` | not null, check `stars between 1 and 5` | |
 | `worth_it` | `boolean` | not null | Yes/no toggle |
@@ -59,7 +59,7 @@ Flags raised against a specific rating/review.
 |---|---|---|---|
 | `id` | `uuid` | PK, default `gen_random_uuid()` | |
 | `rating_id` | `uuid` | FK → `ratings(id)`, not null | The flagged review |
-| `reported_by` | `uuid` | FK → `users(id)`, not null | |
+| `reported_by` | `text` | FK → `users(id)`, not null | Clerk user ID of the reporter |
 | `reason` | `text` | not null, check in `('fake_spam','offensive','unrelated','other')` | |
 | `comment` | `text` | nullable | Optional free-text elaboration |
 | `status` | `text` | not null, default `'pending'`, check in `('pending','dismissed','removed')` | Set by admin action |
@@ -70,7 +70,7 @@ Flags raised against a specific rating/review.
 
 ## 2. Relationships
 
-- `users.id` → `auth.users.id` (1:1, extends Supabase Auth)
+- `users.id` = Clerk user ID (text, no FK to `auth.users` — Clerk owns identity externally)
 - `ratings.user_id` → `users.id` (many ratings per user)
 - `ratings.item_id` → `items.id` (many ratings per item)
 - `reports.rating_id` → `ratings.id` (many reports possible per rating, though UI should discourage duplicate reports from the same user via a secondary unique constraint on `(rating_id, reported_by)`)
@@ -93,9 +93,12 @@ Flags raised against a specific rating/review.
 
 ## 4. Authentication & Session Handling
 
-- Authentication itself (email OTP verification, session/JWT issuance and refresh) is fully handled by **Supabase Auth** — no custom auth tables or logic needed beyond the `public.users` profile extension above.
-- On first successful OTP verification for a new email, a trigger (`on_auth_user_created`) should auto-insert a corresponding row into `public.users` with defaults (`is_banned = false`, `is_admin = false`).
-- Client SDK (`@supabase/supabase-js`) manages session token storage/refresh automatically; the frontend simply checks `supabase.auth.getSession()` on load.
+- **Identity provider:** Clerk (Pro plan) — email verification code, passwordless. Clerk manages user accounts, email delivery, and session tokens.
+- **Supabase integration:** Supabase validates Clerk-signed JWTs via its native Third-Party Auth integration. The `@supabase/supabase-js` client receives the Clerk token through the `accessToken` callback option — no `supabase.auth.getSession()` calls.
+- **User ID format:** Clerk IDs are text strings (e.g. `user_2abc123...`), not UUIDs. All `id`/`user_id`/`reported_by` columns that reference users are `text`.
+- **RLS identity:** Policies use `(select auth.jwt() ->> 'sub')` (wrapped in a subselect for per-statement evaluation) instead of `auth.uid()` (which casts to UUID and fails on Clerk IDs).
+- **Profile provisioning:** On first sign-in, the `useEnsureProfile` hook inserts a `public.users` row for the Clerk user (gated by the `users` INSERT RLS policy). This replaces the old `on_auth_user_created` trigger, which only worked for Supabase Auth users.
+- **Admin check:** `is_admin` remains a column on `public.users`, checked via a `SECURITY DEFINER` helper function `is_admin()` that queries `public.users WHERE id = (select auth.jwt() ->> 'sub') AND is_admin = true`.
 
 ---
 
@@ -109,18 +112,19 @@ RLS must be **enabled on every table**. Policies below define enforcement at the
 
 ### `ratings`
 - `select`: allowed for everyone, including anonymous users (public review reading).
-- `insert`: allowed for authenticated, non-banned users only; must satisfy `user_id = auth.uid()`.
-- `update`: allowed only where `user_id = auth.uid()` (users can only edit their own rating) and the user is not banned.
-- `delete`: allowed for the owning user (`user_id = auth.uid()`) or an admin (for moderation removals).
+- `insert` (to `authenticated`): must satisfy `(select auth.jwt() ->> 'sub') = user_id` and `NOT is_banned()`.
+- `update` (to `authenticated`): `USING` and `WITH CHECK` both require `(select auth.jwt() ->> 'sub') = user_id`; USING also checks `NOT is_banned()`.
+- `delete` (to `authenticated`): owning user `(select auth.jwt() ->> 'sub') = user_id` OR `is_admin()`.
 
 ### `reports`
-- `select`: allowed only for `is_admin = true` (regular users don't need to browse others' reports).
-- `insert`: allowed for authenticated users, must satisfy `reported_by = auth.uid()`.
-- `update`: allowed only for `is_admin = true` (resolving/dismissing reports).
+- `select` (to `authenticated`): `is_admin()` only.
+- `insert` (to `authenticated`): `(select auth.jwt() ->> 'sub') = reported_by` and `NOT is_banned()`.
+- `update` / `delete` (to `authenticated`): `is_admin()` only.
 
 ### `users`
-- `select`: a user can read their own row (`id = auth.uid()`); admin can read all rows (for moderation/ban actions).
-- `update`: a user can update their own `room_number`; only admin can update `is_banned` / `is_admin`.
+- `select` (to `authenticated`): `(select auth.jwt() ->> 'sub') = id` OR `is_admin()`.
+- `insert` (to `authenticated`): `(select auth.jwt() ->> 'sub') = id` — self-provisioning on first Clerk sign-in.
+- `update` (to `authenticated`): `(select auth.jwt() ->> 'sub') = id`. Column-level: only `room_number` is updatable; `is_banned`/`is_admin` are admin-managed directly in DB.
 
 ---
 

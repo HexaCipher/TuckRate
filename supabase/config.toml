@@ -2,3 +2,10 @@
 # `project_id` is only a LOCAL identifier used to namespace local dev containers —
 # it is NOT your remote project ref and is safe to commit.
 project_id = "worthit"
+
+# Third-party auth: Clerk integration (native, not the deprecated JWT template method).
+# Replace the domain below with the Clerk domain shown in the Clerk Dashboard
+# under the Supabase integration setup page.
+[auth.third_party.clerk]
+enabled = true
+domain = "your-clerk-domain.clerk.accounts.dev"

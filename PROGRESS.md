@@ -6,7 +6,7 @@ Live status per `docs/6-Implementation-Plan.md`. One phase at a time.
 |---|---|
 | 0. Setup | ✅ Complete |
 | 1. Database | ✅ Complete (verified in live DB) |
-| 2. Authentication | ✅ Complete (magic link instead of OTP code — Resend integration deferred) |
+| 2. Authentication | ✅ Complete (migrated to Clerk Pro for email-code passwordless auth) |
 | 3. Core UI | ✅ Complete (user-verified working) |
 | 4. Main Features | ✅ Complete (user-verified working) |
 | 5. Trust & Moderation | 🟨 Code complete — SQL migration + live moderation test pending |
@@ -158,6 +158,16 @@ Live status per `docs/6-Implementation-Plan.md`. One phase at a time.
 - **Build & Quality:**
   - `npm run lint`: oxlint passes with 0 warnings and 0 errors across 35 files.
   - `npm run build`: `tsc -b && vite build` passes with 0 errors.
+
+### Clerk Auth Migration (this session)
+- **Supabase Auth → Clerk:** Replaced Supabase OTP auth with Clerk's email_code strategy using the `@clerk/clerk-react` SDK. Clerk handles identity, rate limiting, and email delivery.
+- **Supabase Third-Party Auth:** Configured Supabase to accept Clerk-signed JWTs. Replaced `supabase.auth.getSession()` and `auth.uid()` dependencies.
+- **Client Integration:** Updated `src/lib/supabase.ts` with an `accessToken` callback. Replaced the Supabase auth context with a Clerk-backed `AuthProvider`.
+- **Schema Migration:** (`supabase/migrations/20260905000000_clerk_auth_migration.sql`) Changed `users.id`, `ratings.user_id`, and `reports.reported_by` from `uuid` to `text` to support Clerk IDs (e.g. `user_2abc...`).
+- **RLS Policies:** Rewrote all RLS policies to use `(select auth.jwt() ->> 'sub')` instead of `auth.uid()`.
+- **Profile Provisioning:** Dropped the `on_auth_user_created` Postgres trigger. Added `useEnsureProfile.ts` hook to create `public.users` row on first sign-in via the client.
+- **Login UI:** Completely rewrote `LoginPage.tsx` to interface with Clerk's `useSignIn` and `useSignUp` hooks. Removed the room number collection from the login flow per user request.
+- **Documentation:** Updated `docs/2-TRD.md`, `docs/5-Backend-Schema.md`, and `AGENTS.md` to reflect Clerk as the auth provider.
 
 ### Menu Data Seeding & Schema Update
 - **Schema & Migration (`supabase/migrations/20260904100000_add_is_veg.sql`):**
